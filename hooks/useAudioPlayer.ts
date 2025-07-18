@@ -18,6 +18,11 @@ export const useAudioPlayer = () => {
 
   const playAudio = async (uri: string) => {
     try {
+      // Stop current sound if playing
+      if (sound) {
+        await sound.unloadAsync();
+      }
+
       const { sound: newSound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
       setSound(newSound);
       setIsPlaying(true);
@@ -26,6 +31,14 @@ export const useAudioPlayer = () => {
       if (status.isLoaded) {
         setDuration(status.durationMillis || 0);
       }
+
+      // Set up position tracking
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded) {
+          setPosition(status.positionMillis || 0);
+          setIsPlaying(status.isPlaying);
+        }
+      });
     } catch (error) {
       console.error('Error playing audio:', error);
     }
@@ -53,11 +66,27 @@ export const useAudioPlayer = () => {
     }
   };
 
+  const togglePlayPause = async () => {
+    if (isPlaying) {
+      await pauseAudio();
+    } else {
+      await resumeAudio();
+    }
+  };
+
+  const seekTo = async (positionMillis: number) => {
+    if (sound) {
+      await sound.setPositionAsync(positionMillis);
+    }
+  };
+
   return {
     playAudio,
     pauseAudio,
     resumeAudio,
     stopAudio,
+    togglePlayPause,
+    seekTo,
     isPlaying,
     duration,
     position,

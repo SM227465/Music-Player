@@ -3,7 +3,9 @@ import 'react-native-reanimated';
 
 import HomeScreen from '@/components/ui/HomeScreen';
 import LibraryScreen from '@/components/ui/LibraryScreen';
+import MiniPlayer from '@/components/ui/MiniPlayer';
 import NavigationBar from '@/components/ui/NavigationBar';
+import NowPlayingScreen from '@/components/ui/NowPlayingScreen';
 import ProfileScreen from '@/components/ui/ProfileScreen';
 import SearchScreen from '@/components/ui/SearchScreen';
 import { useState } from 'react';
@@ -11,6 +13,16 @@ import { StyleSheet, View } from 'react-native';
 
 export default function RootLayout() {
   const [activeTab, setActiveTab] = useState('home');
+  const [showNowPlaying, setShowNowPlaying] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState({
+    id: '1',
+    title: 'Blinding Lights',
+    artist: 'The Weeknd',
+    album: 'After Hours',
+    artwork: 'https://example.com/blinding-lights.jpg',
+    duration: 200000,
+    uri: 'https://example.com/blinding-lights.mp3',
+  });
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -31,6 +43,15 @@ export default function RootLayout() {
     <View style={styles.container}>
       <StatusBar style='light' />
       {renderScreen()}
+
+      <MiniPlayer
+        currentTrack={currentTrack}
+        onExpand={() => setShowNowPlaying(true)}
+        isVisible={!showNowPlaying && Boolean(currentTrack.id)}
+      />
+
+      <NowPlayingScreen currentTrack={currentTrack} onMinimize={() => setShowNowPlaying(false)} isVisible={showNowPlaying} />
+
       <NavigationBar activeTab={activeTab} onTabPress={setActiveTab} />
     </View>
   );
