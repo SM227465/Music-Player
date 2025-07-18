@@ -4,12 +4,15 @@ import { useEffect, useState } from 'react';
 
 export const useCustomAudioPlayer = () => {
   const player = useAudioPlayer();
+  // console.log({ player });
+
   const status = useAudioPlayerStatus(player);
 
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Update state based on player status
   useEffect(() => {
@@ -17,11 +20,14 @@ export const useCustomAudioPlayer = () => {
       setIsPlaying(status.playing || false);
       setDuration((status.duration || 0) * 1000); // Convert to milliseconds
       setPosition((status.currentTime || 0) * 1000); // Convert to milliseconds
+      setIsLoading(false);
     }
   }, [status]);
 
   const playAudio = async (uri: string) => {
     try {
+      setIsLoading(true);
+
       if (currentTrack !== uri) {
         // Replace current track if it's different
         await player.replace(uri);
@@ -32,6 +38,7 @@ export const useCustomAudioPlayer = () => {
       setIsPlaying(true);
     } catch (error) {
       console.error('Error playing audio:', error);
+      setIsLoading(false);
     }
   };
 
@@ -46,8 +53,10 @@ export const useCustomAudioPlayer = () => {
 
   const resumeAudio = async () => {
     try {
-      await player.play();
-      setIsPlaying(true);
+      if (currentTrack) {
+        await player.play();
+        setIsPlaying(true);
+      }
     } catch (error) {
       console.error('Error resuming audio:', error);
     }
@@ -86,13 +95,13 @@ export const useCustomAudioPlayer = () => {
     }
   };
 
-  //   const setVolume = async (volume: number) => {
-  //     try {
-  //       await player.setVolume(volume);
-  //     } catch (error) {
-  //       console.error('Error setting volume:', error);
-  //     }
-  //   };
+  // const setVolume = async (volume: number) => {
+  //   try {
+  //     await player.setVolume(volume);
+  //   } catch (error) {
+  //     console.error('Error setting volume:', error);
+  //   }
+  // };
 
   return {
     player,
@@ -105,6 +114,7 @@ export const useCustomAudioPlayer = () => {
     isPlaying,
     duration,
     position,
+    isLoading,
     status,
   };
 };

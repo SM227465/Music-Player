@@ -1,27 +1,31 @@
 // services/apiService.ts
 import { apiClient } from '@/configs/axios.config';
+import { AlbumSearchResponse } from '@/types/albumSearch';
+import { ArtistSearchResponse } from '@/types/artistSearch';
+import { GlobalResultsResponse } from '@/types/globalSearch';
+import { SearchSongsResponse } from '@/types/searchSong';
+import { AxiosResponse } from 'axios';
 
 export const searchService = {
   // Global search
-  globalSearch: async (query: string) => {
-    const response = await apiClient.get(`/search?query=${encodeURIComponent(query)}`);
+  globalSearch: async (query: string): Promise<GlobalResultsResponse> => {
+    const response: AxiosResponse<GlobalResultsResponse> = await apiClient.get(`/search?query=${encodeURIComponent(query)}`);
     return response.data;
   },
 
   // Search songs
-  searchSongs: async (query: string, page: number = 1, limit: number = 10) => {
+  searchSongs: async (query: string, page: number = 1, limit: number = 10): Promise<SearchSongsResponse> => {
     const response = await apiClient.get(`/search/songs?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
     return response.data;
   },
-
   // Search albums
-  searchAlbums: async (query: string, page: number = 1, limit: number = 10) => {
+  searchAlbums: async (query: string, page: number = 1, limit: number = 10): Promise<AlbumSearchResponse> => {
     const response = await apiClient.get(`/search/albums?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
     return response.data;
   },
 
   // Search artists
-  searchArtists: async (query: string, page: number = 1, limit: number = 10) => {
+  searchArtists: async (query: string, page: number = 1, limit: number = 10): Promise<ArtistSearchResponse> => {
     const response = await apiClient.get(`/search/artists?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
     return response.data;
   },

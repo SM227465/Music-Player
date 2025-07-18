@@ -1,34 +1,239 @@
 // components/ui/SearchScreen.tsx
+import { AlbumResult } from '@/types/albumSearch';
+import { ArtistResult } from '@/types/artistSearch';
+import { SongResult } from '@/types/globalSearch';
+import { Song } from '@/types/searchSong';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useGlobalSearch, useSearchAlbums, useSearchArtists, useSearchSongs } from '../../hooks/useApiQueries';
 
-export default function SearchScreen() {
+interface SearchScreenProps {
+  onSongPress: (song: Song) => void;
+  // onAlbumPress: (album: AlbumSearchResult) => void;
+  // onArtistPress: (artist: ArtistSearchResult) => void;
+}
+
+export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPress */ }: SearchScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState('Songs');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
-  const recentSearches = ['The Weeknd', 'Taylor Swift - 1989', 'Chill Vibes Playlist', 'Dance Pop'];
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 2000);
 
-  const trendingSearches = ['Blinding Lights', 'Good 4 U', 'Stay', 'Levitating', 'Peaches'];
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  const searchCategories = [
-    { id: '1', title: 'Pop', color: '#FF6B6B', image: require('../../assets/images/react-logo.png') },
-    { id: '2', title: 'Rock', color: '#4ECDC4', image: require('../../assets/images/react-logo.png') },
-    { id: '3', title: 'Hip Hop', color: '#45B7D1', image: require('../../assets/images/react-logo.png') },
-    { id: '4', title: 'Jazz', color: '#96CEB4', image: require('../../assets/images/react-logo.png') },
-    { id: '5', title: 'Classical', color: '#FECA57', image: require('../../assets/images/react-logo.png') },
-    { id: '6', title: 'Electronic', color: '#FF9FF3', image: require('../../assets/images/react-logo.png') },
-  ];
+  const { data: globalResults, isLoading: globalLoading } = useGlobalSearch(
+    debouncedQuery,
+    activeFilter === 'All' && debouncedQuery.length > 0
+  );
 
-  const filters = ['All', 'Songs', 'Artists', 'Albums', 'Playlists'];
+  const { data: songResults, isLoading: songLoading } = useSearchSongs(debouncedQuery, 1);
+  const { data: albumResults, isLoading: albumLoading } = useSearchAlbums(debouncedQuery, 1);
+  const { data: artistResults, isLoading: artistLoading } = useSearchArtists(debouncedQuery, 1);
 
-  const clearSearch = () => {
-    setSearchQuery('');
+  const filters = ['All', 'Songs', 'Albums', 'Artists'];
+
+  const getImageUrl = (images: any[] | undefined, quality: string = '500x500') => {
+    if (!images || !Array.isArray(images)) return 'https://via.placeholder.com/300x300?text=No+Image';
+    const image = images.find((img) => img.quality === quality) || images[0];
+    return image?.url || 'https://via.placeholder.com/300x300?text=No+Image';
   };
 
-  const handleRecentSearch = (query: string) => {
-    setSearchQuery(query);
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // Render functions for individual search results
+  const renderSongItem = ({ item }: { item: Song }) => (
+    <TouchableOpacity style={styles.resultItem} onPress={() => onSongPress(item)}>
+      <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.resultImage} />
+      <View style={styles.resultInfo}>
+        <Text style={styles.resultTitle} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.resultSubtitle} numberOfLines={1}>
+          {item.artists.primary.map((artist) => artist.name).join(', ')}
+        </Text>
+        <Text style={styles.resultDuration}>{formatDuration(item.duration)}</Text>
+      </View>
+      <TouchableOpacity style={styles.playButton} onPress={() => onSongPress(item)}>
+        <Ionicons name='play' size={20} color='#fff' />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  const renderAlbumItem = ({ item }: { item: AlbumResult }) => (
+    <TouchableOpacity style={styles.resultItem} onPress={() => /* onAlbumPress(item)*/ () => {}}>
+      <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.resultImage} />
+      <View style={styles.resultInfo}>
+        <Text style={styles.resultTitle} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.resultSubtitle} numberOfLines={1}>
+          {item.artists.primary.map((artist) => artist.name).join(', ')}
+        </Text>
+        <Text style={styles.resultDuration}>Album • {item.year}</Text>
+      </View>
+      <TouchableOpacity style={styles.playButton} onPress={() => /*onAlbumPress(item)*/ () => {}}>
+        <Ionicons name='play' size={20} color='#fff' />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  const renderArtistItem = ({ item }: { item: ArtistResult }) => (
+    <TouchableOpacity style={styles.resultItem} onPress={() => /* onArtistPress(item)*/ () => {}}>
+      <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.artistImage} />
+      <View style={styles.resultInfo}>
+        <Text style={styles.resultTitle} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.resultSubtitle}>Artist</Text>
+      </View>
+      <TouchableOpacity style={styles.followButton}>
+        <Text style={styles.followText}>Follow</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  // Render functions for global search results
+  const renderGlobalSongItem = ({ item }: { item: SongResult }) => (
+    <TouchableOpacity style={styles.resultItem} onPress={() => console.log('Global song pressed:', item.title)}>
+      <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.resultImage} />
+      <View style={styles.resultInfo}>
+        <Text style={styles.resultTitle} numberOfLines={1}>
+          {item.title}
+        </Text>
+        <Text style={styles.resultSubtitle} numberOfLines={1}>
+          {item.primaryArtists || item.singers}
+        </Text>
+      </View>
+      <TouchableOpacity style={styles.playButton}>
+        <Ionicons name='play' size={20} color='#fff' />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  const renderGlobalAlbumItem = ({ item }: { item: AlbumResult }) => (
+    <TouchableOpacity style={styles.resultItem} onPress={() => console.log('Global album pressed:', item.name)}>
+      <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.resultImage} />
+      <View style={styles.resultInfo}>
+        <Text style={styles.resultTitle} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.resultSubtitle} numberOfLines={1}>
+          {item.artists.primary.join(',')}
+        </Text>
+        <Text style={styles.resultDuration}>Album • {item.year}</Text>
+      </View>
+      <TouchableOpacity style={styles.playButton}>
+        <Ionicons name='play' size={20} color='#fff' />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  const renderGlobalArtistItem = ({ item }: { item: ArtistResult }) => (
+    <TouchableOpacity style={styles.resultItem} onPress={() => console.log('Global artist pressed:', item.name)}>
+      <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.artistImage} />
+      <View style={styles.resultInfo}>
+        <Text style={styles.resultTitle} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.resultSubtitle}>Artist</Text>
+      </View>
+      <TouchableOpacity style={styles.followButton}>
+        <Text style={styles.followText}>Follow</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  const renderPlaylistItem = ({ item }: { item: any }) => (
+    <TouchableOpacity style={styles.resultItem} onPress={() => console.log('Playlist pressed:', item.title)}>
+      <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.resultImage} />
+      <View style={styles.resultInfo}>
+        <Text style={styles.resultTitle} numberOfLines={1}>
+          {item.title}
+        </Text>
+        <Text style={styles.resultSubtitle}>Playlist</Text>
+      </View>
+      <TouchableOpacity style={styles.playButton}>
+        <Ionicons name='play' size={20} color='#fff' />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  const isLoading = globalLoading || songLoading || albumLoading || artistLoading;
+
+  const renderFilteredResults = () => {
+    switch (activeFilter) {
+      case 'Songs':
+        return (
+          <FlatList
+            data={songResults?.data?.results || []}
+            renderItem={renderSongItem}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            showsVerticalScrollIndicator={false}
+          />
+        );
+      case 'Albums':
+        return (
+          <FlatList
+            data={albumResults?.data?.results || []}
+            renderItem={renderAlbumItem}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            showsVerticalScrollIndicator={false}
+          />
+        );
+      case 'Artists':
+        return (
+          <FlatList
+            data={artistResults?.data?.results || []}
+            renderItem={renderArtistItem}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            showsVerticalScrollIndicator={false}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  const hasResults = () => {
+    if (activeFilter === 'All' && globalResults?.data) {
+      return (
+        (globalResults.data.songs?.results && globalResults.data.songs.results.length > 0) ||
+        (globalResults.data.albums?.results && globalResults.data.albums.results.length > 0) ||
+        (globalResults.data.artists?.results && globalResults.data.artists.results.length > 0) ||
+        (globalResults.data.playlists?.results && globalResults.data.playlists.results.length > 0)
+      );
+    }
+
+    return (
+      (activeFilter === 'Songs' && songResults?.data?.results && songResults.data.results.length > 0) ||
+      (activeFilter === 'Albums' && albumResults?.data?.results && albumResults.data.results.length > 0) ||
+      (activeFilter === 'Artists' && artistResults?.data?.results && artistResults.data.results.length > 0)
+    );
   };
 
   return (
@@ -51,94 +256,146 @@ export default function SearchScreen() {
             autoCorrect={false}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
               <Ionicons name='close-circle' size={20} color='#B8B8D1' />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {searchQuery.length === 0 ? (
-          // Default Search State
-          <>
-            {/* Recent Searches */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Searches</Text>
-                <TouchableOpacity>
-                  <Text style={styles.clearAllText}>Clear All</Text>
+      {debouncedQuery.length > 0 ? (
+        <>
+          {/* Filter Tabs */}
+          <View style={styles.filterContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {filters.map((filter) => (
+                <TouchableOpacity
+                  key={filter}
+                  style={[styles.filterTab, activeFilter === filter && styles.activeFilterTab]}
+                  onPress={() => setActiveFilter(filter)}
+                >
+                  <Text style={[styles.filterText, activeFilter === filter && styles.activeFilterText]}>{filter}</Text>
                 </TouchableOpacity>
-              </View>
+              ))}
+            </ScrollView>
+          </View>
 
-              <View style={styles.recentSearches}>
-                {recentSearches.map((search, index) => (
-                  <TouchableOpacity key={index} style={styles.recentSearchItem} onPress={() => handleRecentSearch(search)}>
-                    <Ionicons name='time-outline' size={16} color='#B8B8D1' />
-                    <Text style={styles.recentSearchText}>{search}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+          {/* Search Results */}
+          <ScrollView style={styles.resultsContainer} showsVerticalScrollIndicator={false}>
+            {isLoading ? (
+              <ActivityIndicator size='large' color='#8B5CF6' style={styles.loader} />
+            ) : (
+              <View style={styles.results}>
+                {activeFilter === 'All' && globalResults?.data ? (
+                  <>
+                    {/* Songs Section */}
+                    {globalResults.data.songs?.results && globalResults.data.songs.results.length > 0 && (
+                      <View style={styles.categorySection}>
+                        <Text style={styles.categoryTitle}>Songs</Text>
+                        <FlatList
+                          data={globalResults.data.songs.results.slice(0, 5)}
+                          renderItem={renderGlobalSongItem}
+                          keyExtractor={(item) => item.id}
+                          scrollEnabled={false}
+                          showsVerticalScrollIndicator={false}
+                        />
+                      </View>
+                    )}
 
-            {/* Trending Searches */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Trending Searches</Text>
-              <View style={styles.trendingContainer}>
-                {trendingSearches.map((trend, index) => (
-                  <TouchableOpacity key={index} style={styles.trendingItem} onPress={() => handleRecentSearch(trend)}>
-                    <Ionicons name='trending-up' size={16} color='#8B5CF6' />
-                    <Text style={styles.trendingText}>{trend}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+                    {/* Albums Section */}
+                    {globalResults.data.albums?.results && globalResults.data.albums.results.length > 0 && (
+                      <View style={styles.categorySection}>
+                        <Text style={styles.categoryTitle}>Albums</Text>
+                        {/* <FlatList
+                          data={globalResults.data.albums.results.slice(0, 5)}
+                          renderItem={renderGlobalAlbumItem}
+                          keyExtractor={(item) => item.id}
+                          scrollEnabled={false}
+                          showsVerticalScrollIndicator={false}
+                        /> */}
+                      </View>
+                    )}
 
-            {/* Browse Categories */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Browse All</Text>
-              <View style={styles.categoriesGrid}>
-                {searchCategories.map((category) => (
-                  <TouchableOpacity key={category.id} style={styles.categoryCard}>
-                    <LinearGradient colors={[category.color, category.color + '80']} style={styles.categoryGradient}>
-                      <Text style={styles.categoryTitle}>{category.title}</Text>
-                      <Image source={category.image} style={styles.categoryImage} />
-                    </LinearGradient>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </>
-        ) : (
-          // Search Results State
-          <>
-            {/* Filter Tabs */}
-            <View style={styles.filterContainer}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {filters.map((filter) => (
-                  <TouchableOpacity
-                    key={filter}
-                    style={[styles.filterTab, activeFilter === filter && styles.activeFilterTab]}
-                    onPress={() => setActiveFilter(filter)}
-                  >
-                    <Text style={[styles.filterText, activeFilter === filter && styles.activeFilterText]}>{filter}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+                    {/* Artists Section */}
+                    {globalResults.data.artists?.results && globalResults.data.artists.results.length > 0 && (
+                      <View style={styles.categorySection}>
+                        <Text style={styles.categoryTitle}>Artists</Text>
+                        {/* <FlatList
+                          data={globalResults.data.artists.results.slice(0, 5)}
+                          renderItem={renderGlobalArtistItem}
+                          keyExtractor={(item) => item.id}
+                          scrollEnabled={false}
+                          showsVerticalScrollIndicator={false}
+                        /> */}
+                      </View>
+                    )}
 
-            {/* Search Results */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Results for "{searchQuery}"</Text>
-              <View style={styles.noResults}>
-                <Ionicons name='search-outline' size={64} color='#6B7280' />
-                <Text style={styles.noResultsText}>No results found</Text>
-                <Text style={styles.noResultsSubtext}>Try different keywords or check your spelling</Text>
+                    {/* Playlists Section */}
+                    {globalResults.data.playlists?.results && globalResults.data.playlists.results.length > 0 && (
+                      <View style={styles.categorySection}>
+                        <Text style={styles.categoryTitle}>Playlists</Text>
+                        <FlatList
+                          data={globalResults.data.playlists.results.slice(0, 5)}
+                          renderItem={renderPlaylistItem}
+                          keyExtractor={(item) => item.id}
+                          scrollEnabled={false}
+                          showsVerticalScrollIndicator={false}
+                        />
+                      </View>
+                    )}
+                  </>
+                ) : (
+                  renderFilteredResults()
+                )}
+
+                {/* No Results Message */}
+                {!isLoading && !hasResults() && (
+                  <View style={styles.noResults}>
+                    <Ionicons name='search-outline' size={64} color='#6B7280' />
+                    <Text style={styles.noResultsText}>No results found</Text>
+                    <Text style={styles.noResultsSubtext}>Try different keywords or check your spelling</Text>
+                  </View>
+                )}
               </View>
+            )}
+          </ScrollView>
+        </>
+      ) : (
+        /* Default State */
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Popular Categories</Text>
+            <View style={styles.categoriesGrid}>
+              {[
+                { title: 'Pop', color: '#FF6B6B' },
+                { title: 'Rock', color: '#4ECDC4' },
+                { title: 'Hip Hop', color: '#45B7D1' },
+                { title: 'Jazz', color: '#96CEB4' },
+                { title: 'Classical', color: '#FECA57' },
+                { title: 'Electronic', color: '#FF9FF3' },
+              ].map((category, index) => (
+                <TouchableOpacity key={index} style={styles.categoryCard} onPress={() => setSearchQuery(category.title)}>
+                  <LinearGradient colors={[category.color, category.color + '80']} style={styles.categoryGradient}>
+                    <Text style={styles.categoryTitle}>{category.title}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
             </View>
-          </>
-        )}
-      </ScrollView>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recent Searches</Text>
+            <View style={styles.recentSearches}>
+              {['The Weeknd', 'Billie Eilish', 'Ed Sheeran', 'Taylor Swift'].map((search, index) => (
+                <TouchableOpacity key={index} style={styles.recentSearchItem} onPress={() => setSearchQuery(search)}>
+                  <Ionicons name='time-outline' size={16} color='#B8B8D1' />
+                  <Text style={styles.recentSearchText}>{search}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      )}
     </LinearGradient>
   );
 }
@@ -182,94 +439,8 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  section: {
-    marginBottom: 30,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 16,
-  },
-  clearAllText: {
-    fontSize: 14,
-    color: '#8B5CF6',
-  },
-  recentSearches: {
-    gap: 12,
-  },
-  recentSearchItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  recentSearchText: {
-    fontSize: 16,
-    color: '#fff',
-    marginLeft: 12,
-  },
-  trendingContainer: {
-    gap: 8,
-  },
-  trendingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
-  },
-  trendingText: {
-    fontSize: 14,
-    color: '#fff',
-    marginLeft: 8,
-  },
-  categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  categoryCard: {
-    width: '48%',
-    height: 100,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  categoryGradient: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'space-between',
-    position: 'relative',
-  },
-  categoryTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  categoryImage: {
-    position: 'absolute',
-    bottom: -10,
-    right: -10,
-    width: 60,
-    height: 60,
-    opacity: 0.7,
-  },
   filterContainer: {
+    paddingHorizontal: 20,
     marginBottom: 20,
   },
   filterTab: {
@@ -292,6 +463,130 @@ const styles = StyleSheet.create({
   },
   activeFilterText: {
     color: '#fff',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  section: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 16,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  categoryCard: {
+    width: '48%',
+    height: 100,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  categoryGradient: {
+    flex: 1,
+    padding: 16,
+    justifyContent: 'center',
+  },
+  categoryTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  recentSearches: {
+    gap: 12,
+  },
+  recentSearchItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  recentSearchText: {
+    fontSize: 16,
+    color: '#fff',
+    marginLeft: 12,
+  },
+  resultsContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  results: {
+    paddingBottom: 100,
+  },
+  categorySection: {
+    marginBottom: 30,
+  },
+  resultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  resultImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  artistImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  resultInfo: {
+    flex: 1,
+  },
+  resultTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  resultSubtitle: {
+    fontSize: 14,
+    color: '#B8B8D1',
+    marginBottom: 2,
+  },
+  resultDuration: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  playButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#8B5CF6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  followButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#8B5CF6',
+  },
+  followText: {
+    color: '#8B5CF6',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  loader: {
+    paddingVertical: 40,
   },
   noResults: {
     alignItems: 'center',

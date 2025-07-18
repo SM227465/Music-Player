@@ -1,0 +1,54 @@
+export interface SearchSongsResponse {
+  success: boolean;
+  data: {
+    total: number;
+    start: number;
+    results: Song[];
+  };
+}
+export interface Song {
+  id: string;
+  name: string;
+  type: string;
+  year: string;
+  releaseDate: string | null;
+  duration: number;
+  label: string;
+  explicitContent: boolean;
+  playCount: number;
+  language: string;
+  hasLyrics: boolean;
+  lyricsId: string | null;
+  url: string;
+  copyright: string;
+  album: Album;
+  artists: ArtistsGroup;
+  image: Image[];
+  downloadUrl: DownloadUrl[];
+}
+export interface ArtistsGroup {
+  primary: Artist[];
+  featured: Artist[];
+  all: Artist[];
+}
+export interface Album {
+  id: string;
+  name: string;
+  url: string;
+}
+export interface Artist {
+  id: string;
+  name: string;
+  role: string;
+  image: Image[];
+  type: string;
+  url: string;
+}
+export interface DownloadUrl {
+  quality: string;
+  url: string;
+}
+export interface Image {
+  quality: string;
+  url: string;
+}

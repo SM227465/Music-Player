@@ -1,5 +1,6 @@
 // hooks/useApiQueries.ts
 import { searchService } from '@/services/search.service';
+import { songService } from '@/services/song.service';
 import { useQuery } from '@tanstack/react-query';
 
 // Search hooks
@@ -36,6 +37,15 @@ export const useSearchArtists = (query: string, page: number = 1) => {
     queryFn: () => searchService.searchArtists(query, page),
     enabled: query.length > 2,
     staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useSongDetails = (songId: string) => {
+  return useQuery({
+    queryKey: ['song-details', songId],
+    queryFn: () => songService.getSongDetails(songId),
+    enabled: !!songId,
+    staleTime: 60 * 60 * 1000, // 1 hour
   });
 };
 
