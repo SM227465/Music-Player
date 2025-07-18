@@ -4,6 +4,7 @@ import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { Animated, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 
 const { width, height } = Dimensions.get('window');
@@ -23,6 +24,7 @@ interface NowPlayingScreenProps {
 }
 
 export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }: NowPlayingScreenProps) {
+  const insets = useSafeAreaInsets();
   const { isPlaying, position, duration, togglePlayPause, seekTo } = useAudioPlayer();
   const [isLiked, setIsLiked] = useState(false);
   const [isShuffling, setIsShuffling] = useState(false);
@@ -84,7 +86,7 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
             {
               translateY: slideAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: [height + 48, 0],
+                outputRange: [height + insets.bottom + 80, 0],
               }),
             },
           ],
