@@ -1,8 +1,8 @@
 // components/ui/MiniPlayer.tsx
+import { useCustomAudioPlayer } from '@/hooks/useAudioPlayer';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 
 interface MiniPlayerProps {
   currentTrack: {
@@ -16,7 +16,7 @@ interface MiniPlayerProps {
 }
 
 export default function MiniPlayer({ currentTrack, onExpand, isVisible }: MiniPlayerProps) {
-  const { isPlaying, togglePlayPause } = useAudioPlayer();
+  const { isPlaying, togglePlayPause } = useCustomAudioPlayer();
 
   if (!isVisible) return null;
 

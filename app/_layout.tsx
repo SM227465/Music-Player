@@ -10,6 +10,7 @@ import ProfileScreen from '@/components/ui/ProfileScreen';
 import SearchScreen from '@/components/ui/SearchScreen';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function RootLayout() {
   const [activeTab, setActiveTab] = useState('home');
@@ -19,9 +20,9 @@ export default function RootLayout() {
     title: 'Blinding Lights',
     artist: 'The Weeknd',
     album: 'After Hours',
-    artwork: 'https://example.com/blinding-lights.jpg',
+    artwork: 'https://i.scdn.co/image/ab67616d0000b27344d77c9b11c18035ad04b8f4',
     duration: 200000,
-    uri: 'https://example.com/blinding-lights.mp3',
+    uri: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
   });
 
   const renderScreen = () => {
@@ -40,20 +41,21 @@ export default function RootLayout() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar style='light' />
-      {renderScreen()}
+    <SafeAreaProvider>
+      <View style={styles.container}>
+        <StatusBar style='light' />
+        {renderScreen()}
 
-      <MiniPlayer
-        currentTrack={currentTrack}
-        onExpand={() => setShowNowPlaying(true)}
-        isVisible={!showNowPlaying && Boolean(currentTrack.id)}
-      />
+        <MiniPlayer
+          currentTrack={currentTrack}
+          onExpand={() => setShowNowPlaying(true)}
+          isVisible={!showNowPlaying && Boolean(currentTrack.id)}
+        />
 
-      <NowPlayingScreen currentTrack={currentTrack} onMinimize={() => setShowNowPlaying(false)} isVisible={showNowPlaying} />
-
-      <NavigationBar activeTab={activeTab} onTabPress={setActiveTab} />
-    </View>
+        <NowPlayingScreen currentTrack={currentTrack} onMinimize={() => setShowNowPlaying(false)} isVisible={showNowPlaying} />
+        <NavigationBar activeTab={activeTab} onTabPress={setActiveTab} />
+      </View>
+    </SafeAreaProvider>
   );
 }
 
