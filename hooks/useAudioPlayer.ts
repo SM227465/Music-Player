@@ -30,6 +30,8 @@ export const useCustomAudioPlayer = () => {
 
   // Update state based on player status with better handling
   useEffect(() => {
+    console.log('isLoaded', status.isLoaded);
+
     if (!status.isLoaded) {
       setIsLoading(true);
       return;
@@ -59,7 +61,7 @@ export const useCustomAudioPlayer = () => {
   const playAudio = useCallback(
     async (uri: string) => {
       try {
-        setIsLoading(true);
+        // setIsLoading(true);
 
         // If it's a different track, replace and reset position
         if (currentTrack !== uri) {

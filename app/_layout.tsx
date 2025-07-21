@@ -8,6 +8,7 @@ import NavigationBar from '@/components/ui/NavigationBar';
 import NowPlayingScreen from '@/components/ui/NowPlayingScreen';
 import ProfileScreen from '@/components/ui/ProfileScreen';
 import SearchScreen from '@/components/ui/SearchScreen';
+import { useCustomAudioPlayer } from '@/hooks/useAudioPlayer';
 import { Album, Artist, Playlist } from '@/types/music';
 import { Song } from '@/types/searchSong';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -28,10 +29,9 @@ export default function RootLayout() {
   const [activeTab, setActiveTab] = useState('home');
   const [showNowPlaying, setShowNowPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Song | null>(null);
+  const { player } = useCustomAudioPlayer();
 
   const handleSongPress = (song: Song) => {
-    // console.log('is it here', song);
-
     setCurrentTrack(song);
     setShowNowPlaying(true);
   };
@@ -94,15 +94,7 @@ export default function RootLayout() {
 
           {currentTrack && (
             <NowPlayingScreen
-              currentTrack={{
-                id: currentTrack.id,
-                title: currentTrack.name,
-                artist: currentTrack.artists.primary.map((a) => a.name).join(', '),
-                album: currentTrack.album.name,
-                artwork: currentTrack.image[0]?.url || '',
-                duration: currentTrack.duration,
-                uri: currentTrack.downloadUrl[0]?.url || '',
-              }}
+              currentTrack={currentTrack}
               onMinimize={() => setShowNowPlaying(false)}
               isVisible={showNowPlaying}
             />

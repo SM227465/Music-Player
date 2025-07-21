@@ -1,6 +1,6 @@
 // components/ui/NowPlayingScreen.tsx
-import { useSongDetails } from '@/hooks/useApiQueries';
 import { useCustomAudioPlayer } from '@/hooks/useAudioPlayer';
+import { Song } from '@/types/searchSong';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,15 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { height } = Dimensions.get('window');
 
 interface NowPlayingScreenProps {
-  currentTrack: {
-    id: string;
-    title: string;
-    artist: string;
-    album: string;
-    artwork: string;
-    duration: number;
-    uri: string;
-  };
+  currentTrack: Song;
   onMinimize: () => void;
   isVisible: boolean;
 }
@@ -47,7 +39,7 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [isSliding, setIsSliding] = useState(false); // Track slider interaction
 
-  const { data: songDetails, isLoading: songDetailsLoading } = useSongDetails(currentTrack.id);
+  // const { data: songDetails, isLoading: songDetailsLoading } = useSongDetails(currentTrack.id);
   const slideAnim = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
 
   // FIXED: Use the hook's getProgress function instead of manual calculation
@@ -71,13 +63,13 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
 
   // Auto-play when song details are loaded
   useEffect(() => {
-    if (songDetails?.data?.[0]?.downloadUrl && isVisible) {
-      const audioUrl = getHighestQualityAudioUrl(songDetails.data[0].downloadUrl);
+    if (currentTrack.downloadUrl.length && isVisible) {
+      const audioUrl = getHighestQualityAudioUrl(currentTrack.downloadUrl);
       if (audioUrl) {
         playAudio(audioUrl);
       }
     }
-  }, [songDetails, isVisible, playAudio]);
+  }, [currentTrack, isVisible, playAudio]);
 
   const getHighestQualityAudioUrl = useCallback((downloadUrls: any[]) => {
     if (!downloadUrls || downloadUrls.length === 0) return null;
@@ -133,13 +125,6 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
   };
 
   const handlePlayPause = async () => {
-    if (songDetailsLoading) return;
-
-    if (!songDetails?.data?.[0]?.downloadUrl) {
-      console.error('No audio URL available');
-      return;
-    }
-
     togglePlayPause();
   };
 
@@ -175,11 +160,11 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
         <View style={styles.artworkContainer}>
           <View style={styles.artworkShadow}>
             <Image
-              source={{ uri: songDetails?.data?.[0]?.image?.[2]?.url }}
+              source={{ uri: currentTrack.image[currentTrack.image.length - 1].url }}
               style={styles.artwork}
               defaultSource={require('../../assets/images/react-logo.png')}
             />
-            {(songDetailsLoading || isLoading) && (
+            {isLoading && (
               <View style={styles.loadingOverlay}>
                 <ActivityIndicator size='large' color='#1DB954' />
               </View>
@@ -190,13 +175,13 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
         {/* Track Info */}
         <View style={styles.trackInfo}>
           <Text style={styles.trackTitle} numberOfLines={2}>
-            {songDetails?.data?.[0]?.name}
+            {currentTrack.name}
           </Text>
           <Text style={styles.trackArtist} numberOfLines={1}>
-            {songDetails?.data?.[0]?.artists?.primary?.map((a) => a.name).join(', ')}
+            {currentTrack.artists?.primary?.map((a) => a.name).join(', ')}
           </Text>
           <Text style={styles.trackAlbum} numberOfLines={1}>
-            {songDetails?.data?.[0]?.album?.name}
+            {currentTrack.album.name}
           </Text>
 
           <TouchableOpacity style={styles.likeButton} onPress={() => setIsLiked(!isLiked)}>
@@ -217,7 +202,7 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
             minimumTrackTintColor='#1DB954'
             maximumTrackTintColor='rgba(255, 255, 255, 0.3)'
             thumbTintColor='#1DB954'
-            disabled={songDetailsLoading || isLoading}
+            disabled={isLoading}
           />
           <View style={styles.timeContainer}>
             {/* FIXED: Remove .current from position and duration */}
@@ -237,11 +222,11 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.playButton, (songDetailsLoading || isLoading) && styles.disabledButton]}
+            style={[styles.playButton, isLoading && styles.disabledButton]}
             onPress={handlePlayPause}
-            disabled={songDetailsLoading || isLoading}
+            disabled={isLoading}
           >
-            {songDetailsLoading || isLoading ? (
+            {isLoading ? (
               <ActivityIndicator size='small' color='#000' />
             ) : (
               <Ionicons name={isPlaying ? 'pause' : 'play'} size={32} color='#000' />
