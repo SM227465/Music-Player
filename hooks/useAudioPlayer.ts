@@ -1,25 +1,25 @@
 // hooks/useAudioPlayer.ts
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export const useCustomAudioPlayer = () => {
   const player = useAudioPlayer();
-  // console.log({ player });
-
   const status = useAudioPlayerStatus(player);
 
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [position, setPosition] = useState(0);
+  const duration = useRef(0);
+  const position = useRef(0);
   const [isLoading, setIsLoading] = useState(false);
 
   // Update state based on player status
   useEffect(() => {
+    console.log(status);
+
     if (status.isLoaded) {
       setIsPlaying(status.playing || false);
-      setDuration((status.duration || 0) * 1000); // Convert to milliseconds
-      setPosition((status.currentTime || 0) * 1000); // Convert to milliseconds
+      duration.current = status.duration || 0;
+      position.current = status.currentTime || 0;
       setIsLoading(false);
     }
   }, [status]);
@@ -29,7 +29,6 @@ export const useCustomAudioPlayer = () => {
       setIsLoading(true);
 
       if (currentTrack !== uri) {
-        // Replace current track if it's different
         await player.replace(uri);
         setCurrentTrack(uri);
       }
@@ -67,7 +66,7 @@ export const useCustomAudioPlayer = () => {
       await player.pause();
       await player.seekTo(0);
       setIsPlaying(false);
-      setPosition(0);
+      position.current = 0;
     } catch (error) {
       console.error('Error stopping audio:', error);
     }
@@ -85,23 +84,15 @@ export const useCustomAudioPlayer = () => {
     }
   };
 
-  const seekTo = async (positionMs: number) => {
+  const seekTo = async (positionSeconds: number) => {
     try {
-      const positionSeconds = positionMs / 1000;
+      // expo-audio expects seconds
       await player.seekTo(positionSeconds);
-      setPosition(positionMs);
+      position.current = positionSeconds;
     } catch (error) {
       console.error('Error seeking:', error);
     }
   };
-
-  // const setVolume = async (volume: number) => {
-  //   try {
-  //     await player.setVolume(volume);
-  //   } catch (error) {
-  //     console.error('Error setting volume:', error);
-  //   }
-  // };
 
   return {
     player,
@@ -112,8 +103,8 @@ export const useCustomAudioPlayer = () => {
     togglePlayPause,
     seekTo,
     isPlaying,
-    duration,
-    position,
+    duration, // This is in seconds
+    position, // This is in seconds
     isLoading,
     status,
   };

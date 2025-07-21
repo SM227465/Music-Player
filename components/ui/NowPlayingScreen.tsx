@@ -4,7 +4,7 @@ import { useCustomAudioPlayer } from '@/hooks/useAudioPlayer';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -32,16 +32,11 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
   const [repeatMode, setRepeatMode] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-
-  // Fetch song details to get the actual audio URL
   const { data: songDetails, isLoading: songDetailsLoading } = useSongDetails(currentTrack.id);
-
-  const slideAnim = new Animated.Value(0);
-  const progress = duration > 0 ? position / duration : 0;
+  const slideAnim = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
+  const progress = duration.current > 0 ? position.current / duration.current : 0;
 
   useEffect(() => {
-    console.log('HIIII');
-
     if (isVisible) {
       Animated.timing(slideAnim, {
         toValue: 1,
@@ -81,14 +76,14 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
     return downloadUrls[0]?.url || null;
   };
 
-  const formatTime = (ms: number) => {
-    const minutes = Math.floor(ms / 60000);
-    const seconds = Math.floor((ms % 60000) / 1000);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const handleProgressChange = (value: number) => {
-    const newPosition = value * duration;
+    const newPosition = value * duration.current;
     seekTo(newPosition);
   };
 
@@ -202,8 +197,8 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
             disabled={songDetailsLoading}
           />
           <View style={styles.timeContainer}>
-            <Text style={styles.timeText}>{formatTime(position)}</Text>
-            <Text style={styles.timeText}>{formatTime(duration)}</Text>
+            <Text style={styles.timeText}>{formatTime(position.current)}</Text>
+            <Text style={styles.timeText}>{formatTime(duration.current)}</Text>
           </View>
         </View>
 

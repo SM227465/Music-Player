@@ -11,7 +11,7 @@ import SearchScreen from '@/components/ui/SearchScreen';
 import { Album, Artist, Playlist } from '@/types/music';
 import { Song } from '@/types/searchSong';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -72,11 +72,6 @@ export default function RootLayout() {
     }
   };
 
-  useEffect(() => {
-    // console.log({ currentTrack });
-    console.log({ showNowPlaying });
-  }, [currentTrack, showNowPlaying]);
-
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
@@ -105,7 +100,7 @@ export default function RootLayout() {
                 artist: currentTrack.artists.primary.map((a) => a.name).join(', '),
                 album: currentTrack.album.name,
                 artwork: currentTrack.image[0]?.url || '',
-                duration: currentTrack.duration * 1000, // Convert to milliseconds
+                duration: currentTrack.duration,
                 uri: currentTrack.downloadUrl[0]?.url || '',
               }}
               onMinimize={() => setShowNowPlaying(false)}
