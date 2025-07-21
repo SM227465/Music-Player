@@ -4,7 +4,7 @@ import { useCustomAudioPlayer } from '@/hooks/useAudioPlayer';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,15 +26,32 @@ interface NowPlayingScreenProps {
 
 export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }: NowPlayingScreenProps) {
   const insets = useSafeAreaInsets();
-  const { isPlaying, position, duration, togglePlayPause, seekTo, playAudio, isLoading } = useCustomAudioPlayer();
+
+  // FIXED: Use the updated hook properties (no .current needed)
+  const {
+    isPlaying,
+    position,
+    duration,
+    togglePlayPause,
+    seekTo,
+    playAudio,
+    isLoading,
+    formatTime, // Use the hook's formatTime function
+    getProgress, // Use the hook's getProgress function
+  } = useCustomAudioPlayer();
+
   const [isLiked, setIsLiked] = useState(false);
   const [isShuffling, setIsShuffling] = useState(false);
   const [repeatMode, setRepeatMode] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [isSliding, setIsSliding] = useState(false); // Track slider interaction
+
   const { data: songDetails, isLoading: songDetailsLoading } = useSongDetails(currentTrack.id);
   const slideAnim = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
-  const progress = duration.current > 0 ? position.current / duration.current : 0;
+
+  // FIXED: Use the hook's getProgress function instead of manual calculation
+  const progress = getProgress() / 100; // Convert percentage to 0-1 range for slider
 
   useEffect(() => {
     if (isVisible) {
@@ -60,9 +77,9 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
         playAudio(audioUrl);
       }
     }
-  }, [songDetails, isVisible]);
+  }, [songDetails, isVisible, playAudio]);
 
-  const getHighestQualityAudioUrl = (downloadUrls: any[]) => {
+  const getHighestQualityAudioUrl = useCallback((downloadUrls: any[]) => {
     if (!downloadUrls || downloadUrls.length === 0) return null;
 
     // Prefer 320kbps, then 160kbps, then 96kbps, etc.
@@ -74,18 +91,31 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
     }
 
     return downloadUrls[0]?.url || null;
-  };
+  }, []);
 
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+  // FIXED: Better slider handling to prevent jumping
+  const handleProgressChange = useCallback(
+    (value: number) => {
+      if (!isSliding) return;
 
-  const handleProgressChange = (value: number) => {
-    const newPosition = value * duration.current;
-    seekTo(newPosition);
-  };
+      const newPosition = value * duration;
+      seekTo(newPosition);
+    },
+    [duration, seekTo, isSliding]
+  );
+
+  const handleSlidingStart = useCallback(() => {
+    setIsSliding(true);
+  }, []);
+
+  const handleSlidingComplete = useCallback(
+    (value: number) => {
+      const newPosition = value * duration;
+      seekTo(newPosition);
+      setIsSliding(false);
+    },
+    [duration, seekTo]
+  );
 
   const getRepeatIcon = () => {
     switch (repeatMode) {
@@ -112,15 +142,6 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
 
     togglePlayPause();
   };
-
-  // Use song details data if available, otherwise use passed data
-  /*
-  const displayData = songDetails?.data?.[0]
-  const displayArtist = displayData.artists?.primary?.map((a) => a.name).join(', ') || currentTrack.artist;
-  const displayAlbum = displayData.album?.name || currentTrack.album;
-  const displayArtwork = displayData.image?.[2]?.url || currentTrack.artwork;
-  const displayDuration = displayData.duration ? displayData.duration * 1000 : currentTrack.duration;
-  */
 
   return (
     <Animated.View
@@ -154,7 +175,7 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
         <View style={styles.artworkContainer}>
           <View style={styles.artworkShadow}>
             <Image
-              source={{ uri: songDetails?.data?.[0].image[2]?.url }}
+              source={{ uri: songDetails?.data?.[0]?.image?.[2]?.url }}
               style={styles.artwork}
               defaultSource={require('../../assets/images/react-logo.png')}
             />
@@ -169,13 +190,13 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
         {/* Track Info */}
         <View style={styles.trackInfo}>
           <Text style={styles.trackTitle} numberOfLines={2}>
-            {songDetails?.data?.[0].name}
+            {songDetails?.data?.[0]?.name}
           </Text>
           <Text style={styles.trackArtist} numberOfLines={1}>
             {songDetails?.data?.[0]?.artists?.primary?.map((a) => a.name).join(', ')}
           </Text>
           <Text style={styles.trackAlbum} numberOfLines={1}>
-            {songDetails?.data?.[0]?.album.name}
+            {songDetails?.data?.[0]?.album?.name}
           </Text>
 
           <TouchableOpacity style={styles.likeButton} onPress={() => setIsLiked(!isLiked)}>
@@ -187,18 +208,21 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
         <View style={styles.progressContainer}>
           <Slider
             style={styles.progressSlider}
-            value={progress}
+            value={isSliding ? undefined : progress} // Don't update value while sliding
             onValueChange={handleProgressChange}
+            onSlidingStart={handleSlidingStart}
+            onSlidingComplete={handleSlidingComplete}
             minimumValue={0}
             maximumValue={1}
             minimumTrackTintColor='#1DB954'
             maximumTrackTintColor='rgba(255, 255, 255, 0.3)'
             thumbTintColor='#1DB954'
-            disabled={songDetailsLoading}
+            disabled={songDetailsLoading || isLoading}
           />
           <View style={styles.timeContainer}>
-            <Text style={styles.timeText}>{formatTime(position.current)}</Text>
-            <Text style={styles.timeText}>{formatTime(duration.current)}</Text>
+            {/* FIXED: Remove .current from position and duration */}
+            <Text style={styles.timeText}>{formatTime(position)}</Text>
+            <Text style={styles.timeText}>{formatTime(duration)}</Text>
           </View>
         </View>
 
@@ -215,7 +239,7 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
           <TouchableOpacity
             style={[styles.playButton, (songDetailsLoading || isLoading) && styles.disabledButton]}
             onPress={handlePlayPause}
-            disabled={songDetailsLoading}
+            disabled={songDetailsLoading || isLoading}
           >
             {songDetailsLoading || isLoading ? (
               <ActivityIndicator size='small' color='#000' />
@@ -270,7 +294,6 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }
     </Animated.View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
