@@ -12,7 +12,6 @@ export const useCustomAudioPlayer = () => {
   const [position, setPosition] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Use refs to prevent stale closures and unnecessary re-renders
   const isSeekingRef = useRef(false);
   const lastPositionRef = useRef(0);
   const positionUpdateThreshold = 0.1; // Only update if position changes by more than 100ms
@@ -162,6 +161,31 @@ export const useCustomAudioPlayer = () => {
     return duration > 0 ? (position / duration) * 100 : 0;
   }, [position, duration]);
 
+  // hooks/useAudioPlayer.ts - Enhanced version
+  const stopAndClear = async () => {
+    try {
+      if (player) {
+        if (currentTrack) {
+          await player.pause();
+        }
+
+        await player.seekTo(0);
+      }
+
+      setIsPlaying(false);
+      setPosition(0);
+      setCurrentTrack(null);
+      setDuration(0);
+      setIsLoading(false);
+    } catch (error) {
+      setIsPlaying(false);
+      setPosition(0);
+      setCurrentTrack(null);
+      setDuration(0);
+      setIsLoading(false);
+    }
+  };
+
   return {
     player,
     playAudio,
@@ -178,5 +202,6 @@ export const useCustomAudioPlayer = () => {
     formatTime,
     getProgress,
     currentTrack,
+    stopAndClear,
   };
 };

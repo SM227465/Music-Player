@@ -29,7 +29,7 @@ export default function RootLayout() {
   const [activeTab, setActiveTab] = useState('home');
   const [showNowPlaying, setShowNowPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Song | null>(null);
-  const { player } = useCustomAudioPlayer();
+  const audioPlayer = useCustomAudioPlayer();
 
   const handleSongPress = (song: Song) => {
     setCurrentTrack(song);
@@ -53,6 +53,12 @@ export default function RootLayout() {
     if (playlist.songs && playlist.songs.length > 0) {
       // handleSongPress(playlist.songs[0]);
     }
+  };
+
+  const handleCloseMiniPlayer = async () => {
+    await audioPlayer.stopAndClear();
+    setCurrentTrack(null);
+    setShowNowPlaying(false);
   };
 
   const renderScreen = () => {
@@ -81,14 +87,11 @@ export default function RootLayout() {
 
           {currentTrack && (
             <MiniPlayer
-              currentTrack={{
-                id: currentTrack.id,
-                title: currentTrack.name,
-                artist: currentTrack.artists.primary.map((a) => a.name).join(', '),
-                artwork: currentTrack.image[0]?.url || '',
-              }}
+              currentTrack={currentTrack}
               onExpand={() => setShowNowPlaying(true)}
               isVisible={!showNowPlaying}
+              audioPlayer={audioPlayer}
+              onClose={handleCloseMiniPlayer}
             />
           )}
 
@@ -97,6 +100,7 @@ export default function RootLayout() {
               currentTrack={currentTrack}
               onMinimize={() => setShowNowPlaying(false)}
               isVisible={showNowPlaying}
+              audioPlayer={audioPlayer}
             />
           )}
           {!showNowPlaying && <NavigationBar activeTab={activeTab} onTabPress={setActiveTab} />}

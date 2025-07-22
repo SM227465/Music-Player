@@ -8,42 +8,28 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+type AudioPlayerType = ReturnType<typeof useCustomAudioPlayer>;
+
 const { height } = Dimensions.get('window');
 
 interface NowPlayingScreenProps {
   currentTrack: Song;
   onMinimize: () => void;
   isVisible: boolean;
+  audioPlayer: AudioPlayerType;
 }
 
-export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible }: NowPlayingScreenProps) {
+export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, audioPlayer }: NowPlayingScreenProps) {
   const insets = useSafeAreaInsets();
-
-  // FIXED: Use the updated hook properties (no .current needed)
-  const {
-    isPlaying,
-    position,
-    duration,
-    togglePlayPause,
-    seekTo,
-    playAudio,
-    isLoading,
-    formatTime, // Use the hook's formatTime function
-    getProgress, // Use the hook's getProgress function
-  } = useCustomAudioPlayer();
-
   const [isLiked, setIsLiked] = useState(false);
   const [isShuffling, setIsShuffling] = useState(false);
   const [repeatMode, setRepeatMode] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-  const [isSliding, setIsSliding] = useState(false); // Track slider interaction
-
-  // const { data: songDetails, isLoading: songDetailsLoading } = useSongDetails(currentTrack.id);
+  const [isSliding, setIsSliding] = useState(false);
   const slideAnim = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
-
-  // FIXED: Use the hook's getProgress function instead of manual calculation
-  const progress = getProgress() / 100; // Convert percentage to 0-1 range for slider
+  const { getProgress, playAudio, duration, seekTo, togglePlayPause, isLoading, formatTime, position, isPlaying } = audioPlayer;
+  const progress = getProgress() / 100;
 
   useEffect(() => {
     if (isVisible) {
