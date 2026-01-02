@@ -17,7 +17,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useGlobalSearch, useSearchAlbums, useSearchArtists, useSearchSongs } from '../../hooks/useApiQueries';
+import {
+  useGlobalSearch,
+  useSearchAlbums,
+  useSearchArtists,
+  useSearchSongs,
+  useSearchSongsInfinite,
+  useSearchAlbumsInfinite,
+  useSearchArtistsInfinite,
+} from '../../hooks/useApiQueries';
 
 interface SearchScreenProps {
   onSongPress: (song: Song) => void;
@@ -34,7 +42,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 2000);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -44,9 +52,35 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
     activeFilter === 'All' && debouncedQuery.length > 0
   );
 
-  const { data: songResults, isLoading: songLoading } = useSearchSongs(debouncedQuery, 1);
-  const { data: albumResults, isLoading: albumLoading } = useSearchAlbums(debouncedQuery, 1);
-  const { data: artistResults, isLoading: artistLoading } = useSearchArtists(debouncedQuery, 1);
+  // Infinite scroll queries
+  const {
+    data: songInfiniteData,
+    isLoading: songLoading,
+    fetchNextPage: fetchNextSongs,
+    hasNextPage: hasNextSongs,
+    isFetchingNextPage: isFetchingNextSongs,
+  } = useSearchSongsInfinite(debouncedQuery);
+
+  const {
+    data: albumInfiniteData,
+    isLoading: albumLoading,
+    fetchNextPage: fetchNextAlbums,
+    hasNextPage: hasNextAlbums,
+    isFetchingNextPage: isFetchingNextAlbums,
+  } = useSearchAlbumsInfinite(debouncedQuery);
+
+  const {
+    data: artistInfiniteData,
+    isLoading: artistLoading,
+    fetchNextPage: fetchNextArtists,
+    hasNextPage: hasNextArtists,
+    isFetchingNextPage: isFetchingNextArtists,
+  } = useSearchArtistsInfinite(debouncedQuery);
+
+  // Flatten paginated data
+  const songResults = songInfiniteData?.pages.flatMap((page) => page.data?.results || []) || [];
+  const albumResults = albumInfiniteData?.pages.flatMap((page) => page.data?.results || []) || [];
+  const artistResults = artistInfiniteData?.pages.flatMap((page) => page.data?.results || []) || [];
 
   const filters = ['All', 'Songs', 'Albums', 'Artists'];
 
@@ -182,36 +216,67 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
 
   const isLoading = globalLoading || songLoading || albumLoading || artistLoading;
 
+  const renderLoadingFooter = (isFetching: boolean) => {
+    if (!isFetching) return null;
+    return (
+      <View style={styles.loadingFooter}>
+        <ActivityIndicator size="small" color="#8B5CF6" />
+        <Text style={styles.loadingFooterText}>Loading more...</Text>
+      </View>
+    );
+  };
+
   const renderFilteredResults = () => {
     switch (activeFilter) {
       case 'Songs':
         return (
           <FlatList
-            data={songResults?.data?.results || []}
+            data={songResults}
             renderItem={renderSongItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
             scrollEnabled={false}
             showsVerticalScrollIndicator={false}
+            onEndReached={() => {
+              if (hasNextSongs && !isFetchingNextSongs) {
+                fetchNextSongs();
+              }
+            }}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderLoadingFooter(isFetchingNextSongs)}
           />
         );
       case 'Albums':
         return (
           <FlatList
-            data={albumResults?.data?.results || []}
+            data={albumResults}
             renderItem={renderAlbumItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
             scrollEnabled={false}
             showsVerticalScrollIndicator={false}
+            onEndReached={() => {
+              if (hasNextAlbums && !isFetchingNextAlbums) {
+                fetchNextAlbums();
+              }
+            }}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderLoadingFooter(isFetchingNextAlbums)}
           />
         );
       case 'Artists':
         return (
           <FlatList
-            data={artistResults?.data?.results || []}
+            data={artistResults}
             renderItem={renderArtistItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
             scrollEnabled={false}
             showsVerticalScrollIndicator={false}
+            onEndReached={() => {
+              if (hasNextArtists && !isFetchingNextArtists) {
+                fetchNextArtists();
+              }
+            }}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderLoadingFooter(isFetchingNextArtists)}
           />
         );
       default:
@@ -230,9 +295,9 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
     }
 
     return (
-      (activeFilter === 'Songs' && songResults?.data?.results && songResults.data.results.length > 0) ||
-      (activeFilter === 'Albums' && albumResults?.data?.results && albumResults.data.results.length > 0) ||
-      (activeFilter === 'Artists' && artistResults?.data?.results && artistResults.data.results.length > 0)
+      (activeFilter === 'Songs' && songResults.length > 0) ||
+      (activeFilter === 'Albums' && albumResults.length > 0) ||
+      (activeFilter === 'Artists' && artistResults.length > 0)
     );
   };
 
@@ -602,5 +667,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
+  },
+  loadingFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  loadingFooterText: {
+    fontSize: 14,
+    color: '#B8B8D1',
+    marginLeft: 8,
   },
 });

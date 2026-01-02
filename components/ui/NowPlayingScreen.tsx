@@ -1,12 +1,15 @@
 // components/ui/NowPlayingScreen.tsx
 import { useCustomAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useFavorites, useHistory, useQueue } from '@/hooks/useStorage';
 import { Song } from '@/types/searchSong';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import QueueModal from './QueueModal';
+import LyricsModal from './LyricsModal';
 
 type AudioPlayerType = ReturnType<typeof useCustomAudioPlayer>;
 
@@ -21,15 +24,25 @@ interface NowPlayingScreenProps {
 
 export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, audioPlayer }: NowPlayingScreenProps) {
   const insets = useSafeAreaInsets();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const { addToHistory } = useHistory();
+  const { queue, playNext, playPrevious, hasNext, hasPrevious, removeFromQueue, clearQueue } = useQueue();
   const [isLiked, setIsLiked] = useState(false);
   const [isShuffling, setIsShuffling] = useState(false);
   const [repeatMode, setRepeatMode] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [showQueueModal, setShowQueueModal] = useState(false);
+  const [showLyricsModal, setShowLyricsModal] = useState(false);
   const [isSliding, setIsSliding] = useState(false);
   const slideAnim = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
   const { getProgress, playAudio, duration, seekTo, togglePlayPause, isLoading, formatTime, position, isPlaying } = audioPlayer;
   const progress = getProgress() / 100;
+
+  // Check if current track is favorited
+  useEffect(() => {
+    setIsLiked(isFavorite(currentTrack.id));
+  }, [currentTrack.id, isFavorite]);
 
   useEffect(() => {
     if (isVisible) {
@@ -114,6 +127,74 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
     togglePlayPause();
   };
 
+  const handleLikePress = async () => {
+    try {
+      const newLikedState = await toggleFavorite(currentTrack);
+      setIsLiked(newLikedState);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
+  // Add to history when track starts playing
+  useEffect(() => {
+    if (isPlaying && currentTrack) {
+      addToHistory(currentTrack);
+    }
+  }, [isPlaying, currentTrack.id]);
+
+  const handleNextTrack = useCallback(() => {
+    const nextSong = playNext();
+    if (nextSong) {
+      // Play next song from queue
+      const audioUrl = getHighestQualityAudioUrl(nextSong.downloadUrl);
+      if (audioUrl) {
+        playAudio(audioUrl);
+      }
+    }
+  }, [playNext, playAudio]);
+
+  const handlePreviousTrack = useCallback(() => {
+    const prevSong = playPrevious();
+    if (prevSong) {
+      // Play previous song from queue
+      const audioUrl = getHighestQualityAudioUrl(prevSong.downloadUrl);
+      if (audioUrl) {
+        playAudio(audioUrl);
+      }
+    }
+  }, [playPrevious, playAudio]);
+
+  const handleQueueSongPress = useCallback((song: Song, index: number) => {
+    const audioUrl = getHighestQualityAudioUrl(song.downloadUrl);
+    if (audioUrl) {
+      playAudio(audioUrl);
+      setShowQueueModal(false);
+    }
+  }, [playAudio]);
+
+  const handleRemoveFromQueue = useCallback(async (index: number) => {
+    await removeFromQueue(index);
+  }, [removeFromQueue]);
+
+  const handleClearQueue = useCallback(() => {
+    Alert.alert(
+      'Clear Queue',
+      'Are you sure you want to clear the entire queue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            await clearQueue();
+            setShowQueueModal(false);
+          },
+        },
+      ]
+    );
+  }, [clearQueue]);
+
   return (
     <Animated.View
       style={[
@@ -170,7 +251,7 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
             {currentTrack.album.name}
           </Text>
 
-          <TouchableOpacity style={styles.likeButton} onPress={() => setIsLiked(!isLiked)}>
+          <TouchableOpacity style={styles.likeButton} onPress={handleLikePress}>
             <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={28} color={isLiked ? '#1DB954' : '#fff'} />
           </TouchableOpacity>
         </View>
@@ -203,8 +284,12 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
             <Ionicons name='shuffle' size={24} color={isShuffling ? '#1DB954' : '#fff'} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.controlButton}>
-            <Ionicons name='play-skip-back' size={32} color='#fff' />
+          <TouchableOpacity
+            style={[styles.controlButton, !hasPrevious && styles.disabledButton]}
+            onPress={handlePreviousTrack}
+            disabled={!hasPrevious}
+          >
+            <Ionicons name='play-skip-back' size={32} color={hasPrevious ? '#fff' : '#666'} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -219,8 +304,12 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.controlButton}>
-            <Ionicons name='play-skip-forward' size={32} color='#fff' />
+          <TouchableOpacity
+            style={[styles.controlButton, !hasNext && styles.disabledButton]}
+            onPress={handleNextTrack}
+            disabled={!hasNext}
+          >
+            <Ionicons name='play-skip-forward' size={32} color={hasNext ? '#fff' : '#666'} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.controlButton} onPress={handleRepeatPress}>
@@ -230,19 +319,24 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
 
         {/* Bottom Controls */}
         <View style={styles.bottomControls}>
-          <TouchableOpacity style={styles.bottomButton}>
+          <TouchableOpacity style={styles.bottomButton} onPress={() => setShowQueueModal(true)}>
             <Ionicons name='list' size={24} color='#fff' />
             <Text style={styles.bottomButtonText}>Queue</Text>
+            {queue.length > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{queue.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.bottomButton} onPress={() => setShowLyricsModal(true)}>
+            <Ionicons name='musical-notes' size={24} color='#fff' />
+            <Text style={styles.bottomButtonText}>Lyrics</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.bottomButton} onPress={() => setShowVolumeSlider(!showVolumeSlider)}>
             <Ionicons name='volume-medium' size={24} color='#fff' />
             <Text style={styles.bottomButtonText}>Volume</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.bottomButton}>
-            <Ionicons name='share' size={24} color='#fff' />
-            <Text style={styles.bottomButtonText}>Share</Text>
           </TouchableOpacity>
         </View>
 
@@ -262,6 +356,28 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
           </View>
         )}
       </LinearGradient>
+
+      {/* Queue Modal */}
+      <QueueModal
+        visible={showQueueModal}
+        onClose={() => setShowQueueModal(false)}
+        queue={queue}
+        currentIndex={0}
+        onSongPress={handleQueueSongPress}
+        onRemoveSong={handleRemoveFromQueue}
+        onClearQueue={handleClearQueue}
+      />
+
+      {/* Lyrics Modal */}
+      <LyricsModal
+        visible={showLyricsModal}
+        onClose={() => setShowLyricsModal(false)}
+        songId={currentTrack.id}
+        songName={currentTrack.name}
+        artistName={currentTrack.artists?.primary?.map((a) => a.name).join(', ') || ''}
+        isPlaying={isPlaying}
+        currentTime={position}
+      />
     </Animated.View>
   );
 }
@@ -404,11 +520,29 @@ const styles = StyleSheet.create({
   bottomButton: {
     alignItems: 'center',
     padding: 12,
+    position: 'relative',
   },
   bottomButtonText: {
     fontSize: 12,
     color: '#B3B3B3',
     marginTop: 4,
+  },
+  badge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#1DB954',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   volumeContainer: {
     paddingHorizontal: 20,
