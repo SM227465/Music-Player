@@ -3,8 +3,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 
 export default function HomeScreen() {
+  const theme = useTheme();
+
   const trendingSongs = [
     { id: '1', title: 'Blinding Lights', artist: 'The Weeknd', image: require('../../assets/images/react-logo.png') },
     { id: '2', title: 'Good Days', artist: 'SZA', image: require('../../assets/images/react-logo.png') },
@@ -20,8 +23,178 @@ export default function HomeScreen() {
     { id: '2', title: 'Rock', image: require('../../assets/images/react-logo.png') },
   ];
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: 60,
+      paddingHorizontal: spacing.xl,
+      paddingBottom: spacing.xl,
+    },
+    greeting: {
+      fontSize: fontSize.xxxl,
+      fontWeight: fontWeight.bold,
+      color: theme.text.primary,
+    },
+    subtitle: {
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+      marginTop: spacing.xs,
+    },
+    notificationButton: {
+      width: iconSize.xl,
+      height: iconSize.xl,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.card.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      shadowColor: theme.shadow.color,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme.shadow.opacity,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: spacing.xl,
+    },
+    section: {
+      marginBottom: spacing.xxxl,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.lg,
+    },
+    sectionTitle: {
+      fontSize: fontSize.xl,
+      fontWeight: fontWeight.bold,
+      color: theme.text.primary,
+    },
+    seeAllText: {
+      fontSize: fontSize.sm,
+      color: theme.accent.primary,
+      fontWeight: fontWeight.semibold,
+    },
+    horizontalScroll: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+    },
+    trendingCard: {
+      width: 160,
+      backgroundColor: theme.card.background,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      shadowColor: theme.shadow.color,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.shadow.opacity,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    trendingImage: {
+      width: 128,
+      height: 128,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.md,
+    },
+    playOverlay: {
+      position: 'absolute',
+      top: 70,
+      right: 70,
+      width: iconSize.xl,
+      height: iconSize.xl,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.accent.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.accent.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    trendingInfo: {
+      alignItems: 'center',
+    },
+    trendingTitle: {
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+      color: theme.text.primary,
+      marginBottom: spacing.xs,
+    },
+    trendingArtist: {
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+    },
+    releaseCard: {
+      width: 140,
+      backgroundColor: theme.card.background,
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      shadowColor: theme.shadow.color,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.shadow.opacity,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    releaseImage: {
+      width: 116,
+      height: 116,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.sm,
+    },
+    releaseInfo: {
+      alignItems: 'center',
+    },
+    releaseTitle: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.semibold,
+      color: theme.text.primary,
+      marginBottom: spacing.xs,
+    },
+    releaseArtist: {
+      fontSize: fontSize.xs,
+      color: theme.text.secondary,
+    },
+    genreCard: {
+      width: 120,
+      height: 80,
+      borderRadius: borderRadius.md,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    genreImage: {
+      width: '100%',
+      height: '100%',
+    },
+    genreOverlay: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: theme.background.overlay,
+      padding: spacing.sm,
+    },
+    genreTitle: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.semibold,
+      color: theme.text.inverse,
+    },
+  });
+
   return (
-    <LinearGradient colors={['#0f0f23', '#1a1a2e', '#533483']} style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       {/* Header */}
       <View style={styles.header}>
         <View>
@@ -29,7 +202,7 @@ export default function HomeScreen() {
           <Text style={styles.subtitle}>Discover your favorite music</Text>
         </View>
         <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name='notifications-outline' size={24} color='#fff' />
+          <Ionicons name='notifications-outline' size={iconSize.md} color={theme.text.primary} />
         </TouchableOpacity>
       </View>
 
@@ -48,7 +221,7 @@ export default function HomeScreen() {
               <TouchableOpacity key={song.id} style={styles.trendingCard}>
                 <Image source={song.image} style={styles.trendingImage} />
                 <View style={styles.playOverlay}>
-                  <Ionicons name='play' size={24} color='#fff' />
+                  <Ionicons name='play' size={iconSize.md} color={theme.text.inverse} />
                 </View>
                 <View style={styles.trendingInfo}>
                   <Text style={styles.trendingTitle}>{song.title}</Text>
@@ -73,7 +246,7 @@ export default function HomeScreen() {
               <TouchableOpacity key={release.id} style={styles.releaseCard}>
                 <Image source={release.image} style={styles.releaseImage} />
                 <View style={styles.playOverlay}>
-                  <Ionicons name='play' size={20} color='#fff' />
+                  <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
                 </View>
                 <View style={styles.releaseInfo}>
                   <Text style={styles.releaseTitle}>{release.title}</Text>
@@ -105,155 +278,6 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#B8B8D1',
-    marginTop: 4,
-  },
-  notificationButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  section: {
-    marginBottom: 30,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: '#8B5CF6',
-  },
-  horizontalScroll: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  trendingCard: {
-    width: 160,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  trendingImage: {
-    width: 128,
-    height: 128,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  playOverlay: {
-    position: 'absolute',
-    top: 70,
-    right: 70,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(139, 92, 246, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  trendingInfo: {
-    alignItems: 'center',
-  },
-  trendingTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  trendingArtist: {
-    fontSize: 14,
-    color: '#B8B8D1',
-  },
-  releaseCard: {
-    width: 140,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  releaseImage: {
-    width: 116,
-    height: 116,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  releaseInfo: {
-    alignItems: 'center',
-  },
-  releaseTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  releaseArtist: {
-    fontSize: 12,
-    color: '#B8B8D1',
-  },
-  genreCard: {
-    width: 120,
-    height: 80,
-    borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  genreImage: {
-    width: '100%',
-    height: '100%',
-  },
-  genreOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    padding: 8,
-  },
-  genreTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-});

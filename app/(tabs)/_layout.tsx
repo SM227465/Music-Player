@@ -14,6 +14,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { ErrorBoundary } from 'react-error-boundary';
 import SplashScreen from './index';
+import { useTheme } from '@/constants/theme';
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
   return (
@@ -28,6 +29,7 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
 }
 
 function MainApp() {
+  const theme = useTheme();
   const [activeTab, setActiveTab] = useState('home');
   const [showNowPlaying, setShowNowPlaying] = useState(false);
   const audioPlayer = useAudioPlayerBackground();
@@ -59,7 +61,7 @@ function MainApp() {
 
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => setActiveTab('home')}>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
         {renderScreen()}
 
         {audioPlayer.currentTrack && (
@@ -125,7 +127,6 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
   },
   errorContainer: {
     flex: 1,

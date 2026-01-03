@@ -1,9 +1,11 @@
-// components/ui/MiniPlayer.tsx - Enhanced version
+// components/ui/MiniPlayer.tsx
 import { useAudioPlayerBackground } from '@/hooks/useAudioPlayerBackground';
 import { Song } from '@/types/searchSong';
+import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 
 type AudioPlayerType = ReturnType<typeof useAudioPlayerBackground>;
 
@@ -26,6 +28,8 @@ export default function MiniPlayer({
   isVisible,
   audioPlayer,
 }: MiniPlayerProps) {
+  const theme = useTheme();
+  const colorScheme = useColorScheme();
   const { togglePlayPause, getProgress, position, duration, formatTime, isPlaying } = audioPlayer;
 
   if (!isVisible) return null;
@@ -51,6 +55,103 @@ export default function MiniPlayer({
 
   const progress = getProgress();
 
+  const styles = StyleSheet.create({
+    container: {
+      position: 'absolute',
+      bottom: 90,
+      left: spacing.lg,
+      right: spacing.lg,
+      zIndex: 999,
+    },
+    playerContainer: {
+      backgroundColor: theme.card.background,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      shadowColor: theme.shadow.color,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: theme.shadow.opacity * 2,
+      shadowRadius: 16,
+      elevation: 12,
+      overflow: 'hidden',
+    },
+    content: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.md,
+    },
+    artwork: {
+      width: 52,
+      height: 52,
+      borderRadius: borderRadius.md,
+      marginRight: spacing.md,
+      backgroundColor: theme.card.background,
+    },
+    trackInfo: {
+      flex: 1,
+      paddingRight: spacing.sm,
+    },
+    title: {
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+      color: theme.text.primary,
+      marginBottom: spacing.xs - 2,
+    },
+    artist: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.medium,
+      color: theme.text.secondary,
+      marginBottom: spacing.xs - 2,
+    },
+    time: {
+      fontSize: fontSize.xs,
+      fontWeight: fontWeight.medium,
+      color: theme.text.tertiary,
+    },
+    controls: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    skipButton: {
+      width: 36,
+      height: 36,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.player.controlBackground,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    playButton: {
+      width: 44,
+      height: 44,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.accent.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.accent.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.player.controlBackground,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    progressBar: {
+      height: 3,
+      backgroundColor: theme.player.progressBackground,
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: theme.player.progress,
+    },
+  });
+
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.playerContainer} onPress={onExpand} activeOpacity={0.9}>
@@ -75,23 +176,23 @@ export default function MiniPlayer({
 
           <View style={styles.controls}>
             {onPrevious && (
-              <TouchableOpacity style={styles.skipButton} onPress={handlePrevious} activeOpacity={0.8}>
-                <Ionicons name='play-skip-back' size={16} color='#fff' />
+              <TouchableOpacity style={styles.skipButton} onPress={handlePrevious} activeOpacity={0.7}>
+                <Ionicons name='play-skip-back' size={iconSize.sm} color={theme.text.primary} />
               </TouchableOpacity>
             )}
 
             <TouchableOpacity style={styles.playButton} onPress={handlePlayPause} activeOpacity={0.8}>
-              <Ionicons name={isPlaying ? 'pause' : 'play'} size={20} color='#fff' />
+              <Ionicons name={isPlaying ? 'pause' : 'play'} size={iconSize.md} color={theme.text.inverse} />
             </TouchableOpacity>
 
             {onNext && (
-              <TouchableOpacity style={styles.skipButton} onPress={handleNext} activeOpacity={0.8}>
-                <Ionicons name='play-skip-forward' size={16} color='#fff' />
+              <TouchableOpacity style={styles.skipButton} onPress={handleNext} activeOpacity={0.7}>
+                <Ionicons name='play-skip-forward' size={iconSize.sm} color={theme.text.primary} />
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose} activeOpacity={0.8}>
-              <Ionicons name='close' size={16} color='#fff' />
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose} activeOpacity={0.7}>
+              <Ionicons name='close' size={iconSize.sm} color={theme.text.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -102,104 +203,3 @@ export default function MiniPlayer({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    bottom: 90,
-    left: 20,
-    right: 20,
-    zIndex: 999,
-  },
-  progressBar: {
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#1DB954',
-    borderRadius: 1.5,
-  },
-  playerContainer: {
-    backgroundColor: 'rgba(26, 92, 74, 0.95)',
-    borderRadius: 12,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    backdropFilter: 'blur(10px)',
-  },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-  },
-  artwork: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#2d7a5f',
-  },
-  trackInfo: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 2,
-  },
-  artist: {
-    fontSize: 12,
-    color: '#B3B3B3',
-    marginBottom: 2,
-  },
-  time: {
-    fontSize: 10,
-    color: '#888',
-  },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  skipButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1DB954',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#1DB954',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  closeButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});

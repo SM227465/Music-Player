@@ -26,6 +26,7 @@ import {
   useSearchAlbumsInfinite,
   useSearchArtistsInfinite,
 } from '../../hooks/useApiQueries';
+import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 
 interface SearchScreenProps {
   onSongPress: (song: Song) => void;
@@ -34,6 +35,7 @@ interface SearchScreenProps {
 }
 
 export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPress */ }: SearchScreenProps) {
+  const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Songs');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -110,7 +112,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
         <Text style={styles.resultDuration}>{formatDuration(item.duration)}</Text>
       </View>
       <TouchableOpacity style={styles.playButton} onPress={() => onSongPress(item)}>
-        <Ionicons name='play' size={20} color='#fff' />
+        <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -128,7 +130,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
         <Text style={styles.resultDuration}>Album • {item.year}</Text>
       </View>
       <TouchableOpacity style={styles.playButton} onPress={() => /*onAlbumPress(item)*/ () => {}}>
-        <Ionicons name='play' size={20} color='#fff' />
+        <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -161,7 +163,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
         </Text>
       </View>
       <TouchableOpacity style={styles.playButton}>
-        <Ionicons name='play' size={20} color='#fff' />
+        <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -179,7 +181,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
         <Text style={styles.resultDuration}>Album • {item.year}</Text>
       </View>
       <TouchableOpacity style={styles.playButton}>
-        <Ionicons name='play' size={20} color='#fff' />
+        <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -209,7 +211,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
         <Text style={styles.resultSubtitle}>Playlist</Text>
       </View>
       <TouchableOpacity style={styles.playButton}>
-        <Ionicons name='play' size={20} color='#fff' />
+        <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -220,7 +222,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
     if (!isFetching) return null;
     return (
       <View style={styles.loadingFooter}>
-        <ActivityIndicator size="small" color="#8B5CF6" />
+        <ActivityIndicator size="small" color={theme.accent.primary} />
         <Text style={styles.loadingFooterText}>Loading more...</Text>
       </View>
     );
@@ -302,8 +304,259 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
     );
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    header: {
+      paddingTop: 60,
+      paddingHorizontal: spacing.xl,
+      paddingBottom: spacing.xl,
+    },
+    headerTitle: {
+      fontSize: fontSize.xxxl,
+      fontWeight: fontWeight.bold,
+      color: theme.text.primary,
+    },
+    searchContainer: {
+      paddingHorizontal: spacing.xl,
+      marginBottom: spacing.xl,
+    },
+    searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.card.background,
+      borderRadius: borderRadius.full,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      shadowColor: theme.shadow.color,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme.shadow.opacity,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    searchIcon: {
+      marginRight: spacing.md,
+    },
+    searchInput: {
+      flex: 1,
+      color: theme.text.primary,
+      fontSize: fontSize.base,
+    },
+    clearButton: {
+      padding: spacing.xs,
+    },
+    filterContainer: {
+      paddingHorizontal: spacing.xl,
+      marginBottom: spacing.xl,
+    },
+    filterTab: {
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.xl,
+      marginRight: spacing.md,
+      backgroundColor: theme.card.background,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+    },
+    activeFilterTab: {
+      backgroundColor: theme.accent.primary,
+      borderColor: theme.accent.primary,
+      shadowColor: theme.accent.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    filterText: {
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+      fontWeight: fontWeight.medium,
+    },
+    activeFilterText: {
+      color: theme.text.inverse,
+      fontWeight: fontWeight.semibold,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: spacing.xl,
+    },
+    section: {
+      marginBottom: spacing.xxxl,
+    },
+    sectionTitle: {
+      fontSize: fontSize.xl,
+      fontWeight: fontWeight.bold,
+      color: theme.text.primary,
+      marginBottom: spacing.lg,
+    },
+    categoriesGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.md,
+    },
+    categoryCard: {
+      width: '48%',
+      height: 100,
+      borderRadius: borderRadius.md,
+      overflow: 'hidden',
+    },
+    categoryGradient: {
+      flex: 1,
+      padding: spacing.lg,
+      justifyContent: 'center',
+    },
+    categoryTitle: {
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.bold,
+      color: theme.text.inverse,
+    },
+    recentSearches: {
+      gap: spacing.md,
+    },
+    recentSearchItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.card.background,
+      borderRadius: borderRadius.md,
+      padding: spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      shadowColor: theme.shadow.color,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: theme.shadow.opacity,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    recentSearchText: {
+      fontSize: fontSize.base,
+      color: theme.text.primary,
+      marginLeft: spacing.md,
+      fontWeight: fontWeight.medium,
+    },
+    resultsContainer: {
+      flex: 1,
+      paddingHorizontal: spacing.xl,
+    },
+    results: {
+      paddingBottom: 100,
+    },
+    categorySection: {
+      marginBottom: spacing.xxxl,
+    },
+    resultItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.card.background,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      shadowColor: theme.shadow.color,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme.shadow.opacity,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    resultImage: {
+      width: 50,
+      height: 50,
+      borderRadius: borderRadius.sm,
+      marginRight: spacing.md,
+    },
+    artistImage: {
+      width: 50,
+      height: 50,
+      borderRadius: borderRadius.full,
+      marginRight: spacing.md,
+    },
+    resultInfo: {
+      flex: 1,
+    },
+    resultTitle: {
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+      color: theme.text.primary,
+      marginBottom: spacing.xs,
+    },
+    resultSubtitle: {
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+      marginBottom: 2,
+    },
+    resultDuration: {
+      fontSize: fontSize.xs,
+      color: theme.text.tertiary,
+    },
+    playButton: {
+      width: iconSize.xl,
+      height: iconSize.xl,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.accent.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.accent.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    followButton: {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.xl,
+      borderWidth: 1,
+      borderColor: theme.accent.primary,
+    },
+    followText: {
+      color: theme.accent.primary,
+      fontSize: fontSize.xs,
+      fontWeight: fontWeight.semibold,
+    },
+    loader: {
+      paddingVertical: spacing.xxxxl,
+    },
+    loaderContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 60,
+    },
+    noResults: {
+      alignItems: 'center',
+      paddingTop: 60,
+    },
+    noResultsText: {
+      fontSize: fontSize.lg,
+      color: theme.text.tertiary,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
+      fontWeight: fontWeight.medium,
+    },
+    noResultsSubtext: {
+      fontSize: fontSize.sm,
+      color: theme.text.tertiary,
+      textAlign: 'center',
+    },
+    loadingFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.xl,
+      gap: spacing.sm,
+    },
+    loadingFooterText: {
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+      marginLeft: spacing.sm,
+    },
+  });
+
   return (
-    <LinearGradient colors={['#0f0f23', '#1a1a2e', '#533483']} style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Search</Text>
@@ -312,18 +565,18 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Ionicons name='search' size={20} color='#B8B8D1' style={styles.searchIcon} />
+          <Ionicons name='search' size={iconSize.sm} color={theme.text.secondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder='Search for songs, artists, albums...'
-            placeholderTextColor='#6B7280'
+            placeholderTextColor={theme.text.tertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCorrect={false}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-              <Ionicons name='close-circle' size={20} color='#B8B8D1' />
+              <Ionicons name='close-circle' size={iconSize.sm} color={theme.text.secondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -349,7 +602,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
           {/* Search Results */}
           {isLoading ? (
             <View style={styles.loaderContainer}>
-              <ActivityIndicator size='large' color='#8B5CF6' />
+              <ActivityIndicator size='large' color={theme.accent.primary} />
             </View>
           ) : activeFilter === 'All' && globalResults?.data ? (
             <ScrollView style={styles.resultsContainer} showsVerticalScrollIndicator={false}>
@@ -399,7 +652,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
                 {/* No Results Message */}
                 {!hasResults() && (
                   <View style={styles.noResults}>
-                    <Ionicons name='search-outline' size={64} color='#6B7280' />
+                    <Ionicons name='search-outline' size={64} color={theme.text.tertiary} />
                     <Text style={styles.noResultsText}>No results found</Text>
                     <Text style={styles.noResultsSubtext}>Try different keywords or check your spelling</Text>
                   </View>
@@ -420,7 +673,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
               ListEmptyComponent={
                 !isLoading ? (
                   <View style={styles.noResults}>
-                    <Ionicons name='search-outline' size={64} color='#6B7280' />
+                    <Ionicons name='search-outline' size={64} color={theme.text.tertiary} />
                     <Text style={styles.noResultsText}>No results found</Text>
                     <Text style={styles.noResultsSubtext}>Try different keywords or check your spelling</Text>
                   </View>
@@ -457,7 +710,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
             <View style={styles.recentSearches}>
               {['The Weeknd', 'Billie Eilish', 'Ed Sheeran', 'Taylor Swift'].map((search, index) => (
                 <TouchableOpacity key={index} style={styles.recentSearchItem} onPress={() => setSearchQuery(search)}>
-                  <Ionicons name='time-outline' size={16} color='#B8B8D1' />
+                  <Ionicons name='time-outline' size={iconSize.sm} color={theme.text.secondary} />
                   <Text style={styles.recentSearchText}>{search}</Text>
                 </TouchableOpacity>
               ))}
@@ -465,229 +718,6 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
           </View>
         </ScrollView>
       )}
-    </LinearGradient>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 25,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  searchIcon: {
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    color: '#fff',
-    fontSize: 16,
-  },
-  clearButton: {
-    padding: 4,
-  },
-  filterContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  filterTab: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  activeFilterTab: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#8B5CF6',
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#B8B8D1',
-    fontWeight: '500',
-  },
-  activeFilterText: {
-    color: '#fff',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  section: {
-    marginBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 16,
-  },
-  categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  categoryCard: {
-    width: '48%',
-    height: 100,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  categoryGradient: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'center',
-  },
-  categoryTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  recentSearches: {
-    gap: 12,
-  },
-  recentSearchItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  recentSearchText: {
-    fontSize: 16,
-    color: '#fff',
-    marginLeft: 12,
-  },
-  resultsContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  results: {
-    paddingBottom: 100,
-  },
-  categorySection: {
-    marginBottom: 30,
-  },
-  resultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  resultImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  artistImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-  },
-  resultInfo: {
-    flex: 1,
-  },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  resultSubtitle: {
-    fontSize: 14,
-    color: '#B8B8D1',
-    marginBottom: 2,
-  },
-  resultDuration: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  playButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#8B5CF6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  followButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#8B5CF6',
-  },
-  followText: {
-    color: '#8B5CF6',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  loader: {
-    paddingVertical: 40,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  noResults: {
-    alignItems: 'center',
-    paddingTop: 60,
-  },
-  noResultsText: {
-    fontSize: 18,
-    color: '#6B7280',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  noResultsSubtext: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  loadingFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 8,
-  },
-  loadingFooterText: {
-    fontSize: 14,
-    color: '#B8B8D1',
-    marginLeft: 8,
-  },
-});

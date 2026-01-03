@@ -262,7 +262,8 @@ export function useSettings() {
     try {
       setLoading(true);
       const data = await settingsService.getSettings();
-      setSettings(data);
+      // Create a new object to ensure React detects the change
+      setSettings({ ...data });
     } catch (error) {
       console.error('Error loading settings:', error);
     } finally {

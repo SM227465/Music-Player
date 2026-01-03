@@ -3,7 +3,6 @@ import { useFavorites, usePlaylists, useHistory, useDownloads } from '@/hooks/us
 import { Song } from '@/types/searchSong';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -18,8 +17,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 
 export default function LibraryScreen() {
+  const theme = useTheme();
   const [activeTab, setActiveTab] = useState('Favorites');
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
   const [playlistName, setPlaylistName] = useState('');
@@ -109,6 +110,319 @@ export default function LibraryScreen() {
     return image?.url || null;
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: 60,
+      paddingHorizontal: spacing.xl,
+      paddingBottom: spacing.xl,
+    },
+    headerTitle: {
+      fontSize: fontSize.xxxl,
+      fontWeight: fontWeight.bold,
+      color: theme.text.primary,
+    },
+    addButton: {
+      width: iconSize.xl,
+      height: iconSize.xl,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.accent.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.accent.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    tabContainer: {
+      paddingHorizontal: spacing.xl,
+      marginBottom: spacing.xl,
+    },
+    tab: {
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.xl,
+      marginRight: spacing.md,
+      backgroundColor: theme.card.background,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+    },
+    activeTab: {
+      backgroundColor: theme.accent.primary,
+      borderColor: theme.accent.primary,
+      shadowColor: theme.accent.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    tabText: {
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+      fontWeight: fontWeight.medium,
+    },
+    activeTabText: {
+      color: theme.text.inverse,
+      fontWeight: fontWeight.semibold,
+    },
+    content: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      color: theme.text.secondary,
+      marginTop: spacing.md,
+      fontSize: fontSize.sm,
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: 60,
+      paddingHorizontal: spacing.xxxxl,
+    },
+    emptyStateTitle: {
+      fontSize: fontSize.xl,
+      fontWeight: fontWeight.semibold,
+      color: theme.text.primary,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    emptyStateText: {
+      fontSize: fontSize.sm,
+      color: theme.text.tertiary,
+      textAlign: 'center',
+    },
+    listContainer: {
+      flex: 1,
+      paddingHorizontal: spacing.xl,
+    },
+    listHeader: {
+      marginBottom: spacing.lg,
+    },
+    listTitle: {
+      fontSize: fontSize.xl,
+      fontWeight: fontWeight.semibold,
+      color: theme.text.primary,
+      marginBottom: spacing.xs,
+    },
+    listSubtitle: {
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+    },
+    listContent: {
+      paddingBottom: 100,
+    },
+    songItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.card.background,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      shadowColor: theme.shadow.color,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme.shadow.opacity,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    songImage: {
+      width: 50,
+      height: 50,
+      borderRadius: borderRadius.sm,
+      marginRight: spacing.md,
+      backgroundColor: theme.card.background,
+    },
+    songInfo: {
+      flex: 1,
+    },
+    songTitle: {
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+      color: theme.text.primary,
+      marginBottom: spacing.xs,
+    },
+    songArtist: {
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+    },
+    playedAt: {
+      fontSize: fontSize.xs,
+      color: theme.text.tertiary,
+      marginTop: 2,
+    },
+    playIconButton: {
+      width: 36,
+      height: 36,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.accent.primary + '33',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    playlistsContainer: {
+      flex: 1,
+      paddingHorizontal: spacing.xl,
+    },
+    playlistItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.card.background,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      shadowColor: theme.shadow.color,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme.shadow.opacity,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    playlistImageContainer: {
+      marginRight: spacing.lg,
+    },
+    playlistImage: {
+      width: 64,
+      height: 64,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.card.background,
+    },
+    placeholderImage: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    playlistInfo: {
+      flex: 1,
+    },
+    playlistTitle: {
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+      color: theme.text.primary,
+      marginBottom: spacing.xs,
+    },
+    playlistDescription: {
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+      marginBottom: spacing.xs,
+    },
+    playlistDetails: {
+      fontSize: fontSize.sm,
+      color: theme.text.tertiary,
+    },
+    deleteButton: {
+      width: 36,
+      height: 36,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.accent.error + '1A',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: spacing.sm,
+    },
+    historyContainer: {
+      flex: 1,
+      paddingHorizontal: spacing.xl,
+    },
+    downloadsContainer: {
+      flex: 1,
+      paddingHorizontal: spacing.xl,
+    },
+    downloadInfo: {
+      fontSize: fontSize.xs,
+      color: theme.text.tertiary,
+      marginTop: 2,
+    },
+    paddingBottom: {
+      height: 100,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.background.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      width: '85%',
+      backgroundColor: theme.background.elevated,
+      borderRadius: borderRadius.xl,
+      padding: spacing.xxl,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      shadowColor: theme.shadow.color,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: theme.shadow.opacity * 2,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+    modalTitle: {
+      fontSize: fontSize.xxl,
+      fontWeight: fontWeight.bold,
+      color: theme.text.primary,
+      marginBottom: spacing.xl,
+      textAlign: 'center',
+    },
+    input: {
+      backgroundColor: theme.card.background,
+      borderRadius: borderRadius.md,
+      padding: spacing.lg,
+      color: theme.text.primary,
+      fontSize: fontSize.base,
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+    },
+    textArea: {
+      height: 80,
+      textAlignVertical: 'top',
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+    cancelButton: {
+      flex: 1,
+      padding: spacing.lg,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.card.background,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+    },
+    cancelButtonText: {
+      color: theme.text.primary,
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+      textAlign: 'center',
+    },
+    createButton: {
+      flex: 1,
+      padding: spacing.lg,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.accent.primary,
+      shadowColor: theme.accent.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    createButtonText: {
+      color: theme.text.inverse,
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+      textAlign: 'center',
+    },
+  });
+
   const renderSongItem = ({ item }: { item: Song }) => (
     <TouchableOpacity style={styles.songItem}>
       <Image source={{ uri: getImageUrl(item.image, '150x150') || '' }} style={styles.songImage} />
@@ -121,7 +435,7 @@ export default function LibraryScreen() {
         </Text>
       </View>
       <TouchableOpacity style={styles.playIconButton}>
-        <Ionicons name='play' size={20} color='#8B5CF6' />
+        <Ionicons name='play' size={iconSize.sm} color={theme.accent.primary} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -130,7 +444,7 @@ export default function LibraryScreen() {
     if (favoritesLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color='#8B5CF6' />
+          <ActivityIndicator size='large' color={theme.accent.primary} />
           <Text style={styles.loadingText}>Loading favorites...</Text>
         </View>
       );
@@ -139,7 +453,7 @@ export default function LibraryScreen() {
     if (favorites.length === 0) {
       return (
         <View style={styles.emptyState}>
-          <Ionicons name='heart-outline' size={64} color='#6B7280' />
+          <Ionicons name='heart-outline' size={64} color={theme.text.tertiary} />
           <Text style={styles.emptyStateTitle}>No favorites yet</Text>
           <Text style={styles.emptyStateText}>Songs you like will appear here</Text>
         </View>
@@ -162,8 +476,8 @@ export default function LibraryScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#8B5CF6"
-              colors={['#8B5CF6']}
+              tintColor={theme.accent.primary}
+              colors={[theme.accent.primary]}
             />
           }
         />
@@ -175,7 +489,7 @@ export default function LibraryScreen() {
     if (playlistsLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color='#8B5CF6' />
+          <ActivityIndicator size='large' color={theme.accent.primary} />
           <Text style={styles.loadingText}>Loading playlists...</Text>
         </View>
       );
@@ -184,7 +498,7 @@ export default function LibraryScreen() {
     if (playlists.length === 0) {
       return (
         <View style={styles.emptyState}>
-          <Ionicons name='musical-notes-outline' size={64} color='#6B7280' />
+          <Ionicons name='musical-notes-outline' size={64} color={theme.text.tertiary} />
           <Text style={styles.emptyStateTitle}>No playlists yet</Text>
           <Text style={styles.emptyStateText}>Create your first playlist</Text>
         </View>
@@ -199,8 +513,8 @@ export default function LibraryScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#8B5CF6"
-            colors={['#8B5CF6']}
+            tintColor={theme.accent.primary}
+            colors={[theme.accent.primary]}
           />
         }
       >
@@ -211,7 +525,7 @@ export default function LibraryScreen() {
                 <Image source={{ uri: getImageUrl(playlist.songs[0].image) || '' }} style={styles.playlistImage} />
               ) : (
                 <View style={[styles.playlistImage, styles.placeholderImage]}>
-                  <Ionicons name='musical-notes' size={32} color='#8B5CF6' />
+                  <Ionicons name='musical-notes' size={iconSize.xl} color={theme.accent.primary} />
                 </View>
               )}
             </View>
@@ -226,7 +540,7 @@ export default function LibraryScreen() {
               style={styles.deleteButton}
               onPress={() => handleDeletePlaylist(playlist.id, playlist.name)}
             >
-              <Ionicons name='trash-outline' size={20} color='#EF4444' />
+              <Ionicons name='trash-outline' size={iconSize.sm} color={theme.accent.error} />
             </TouchableOpacity>
           </TouchableOpacity>
         ))}
@@ -239,7 +553,7 @@ export default function LibraryScreen() {
     if (historyLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color='#8B5CF6' />
+          <ActivityIndicator size='large' color={theme.accent.primary} />
           <Text style={styles.loadingText}>Loading history...</Text>
         </View>
       );
@@ -248,7 +562,7 @@ export default function LibraryScreen() {
     if (history.length === 0) {
       return (
         <View style={styles.emptyState}>
-          <Ionicons name='time-outline' size={64} color='#6B7280' />
+          <Ionicons name='time-outline' size={64} color={theme.text.tertiary} />
           <Text style={styles.emptyStateTitle}>No history yet</Text>
           <Text style={styles.emptyStateText}>Songs you play will appear here</Text>
         </View>
@@ -263,8 +577,8 @@ export default function LibraryScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#8B5CF6"
-            colors={['#8B5CF6']}
+            tintColor={theme.accent.primary}
+            colors={[theme.accent.primary]}
           />
         }
       >
@@ -295,7 +609,7 @@ export default function LibraryScreen() {
               </Text>
             </View>
             <TouchableOpacity style={styles.playIconButton}>
-              <Ionicons name='play' size={20} color='#8B5CF6' />
+              <Ionicons name='play' size={iconSize.sm} color={theme.accent.primary} />
             </TouchableOpacity>
           </TouchableOpacity>
         ))}
@@ -325,7 +639,7 @@ export default function LibraryScreen() {
     if (downloadsLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color='#8B5CF6' />
+          <ActivityIndicator size='large' color={theme.accent.primary} />
           <Text style={styles.loadingText}>Loading downloads...</Text>
         </View>
       );
@@ -334,7 +648,7 @@ export default function LibraryScreen() {
     if (downloads.length === 0) {
       return (
         <View style={styles.emptyState}>
-          <Ionicons name='download-outline' size={64} color='#6B7280' />
+          <Ionicons name='download-outline' size={64} color={theme.text.tertiary} />
           <Text style={styles.emptyStateTitle}>No downloads yet</Text>
           <Text style={styles.emptyStateText}>Download songs for offline playback</Text>
         </View>
@@ -349,8 +663,8 @@ export default function LibraryScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#8B5CF6"
-            colors={['#8B5CF6']}
+            tintColor={theme.accent.primary}
+            colors={[theme.accent.primary]}
           />
         }
       >
@@ -381,7 +695,7 @@ export default function LibraryScreen() {
               style={styles.deleteButton}
               onPress={() => handleDeleteDownload(song.id, song.name)}
             >
-              <Ionicons name='trash-outline' size={20} color='#EF4444' />
+              <Ionicons name='trash-outline' size={iconSize.sm} color={theme.accent.error} />
             </TouchableOpacity>
           </TouchableOpacity>
         ))}
@@ -391,13 +705,13 @@ export default function LibraryScreen() {
   };
 
   return (
-    <LinearGradient colors={['#0f0f23', '#1a1a2e', '#533483']} style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Your Library</Text>
         {activeTab === 'Playlists' && (
           <TouchableOpacity style={styles.addButton} onPress={() => setShowCreatePlaylist(true)}>
-            <Ionicons name='add' size={24} color='#fff' />
+            <Ionicons name='add' size={iconSize.md} color={theme.text.inverse} />
           </TouchableOpacity>
         )}
       </View>
@@ -439,7 +753,7 @@ export default function LibraryScreen() {
             <TextInput
               style={styles.input}
               placeholder='Playlist name'
-              placeholderTextColor='#6B7280'
+              placeholderTextColor={theme.text.tertiary}
               value={playlistName}
               onChangeText={setPlaylistName}
               autoFocus
@@ -448,7 +762,7 @@ export default function LibraryScreen() {
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder='Description (optional)'
-              placeholderTextColor='#6B7280'
+              placeholderTextColor={theme.text.tertiary}
               value={playlistDescription}
               onChangeText={setPlaylistDescription}
               multiline
@@ -466,288 +780,6 @@ export default function LibraryScreen() {
           </View>
         </View>
       </Modal>
-    </LinearGradient>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#8B5CF6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginRight: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  activeTab: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#8B5CF6',
-  },
-  tabText: {
-    fontSize: 14,
-    color: '#B8B8D1',
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: '#fff',
-  },
-  content: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#B8B8D1',
-    marginTop: 12,
-    fontSize: 14,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 40,
-  },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#fff',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  listContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  listHeader: {
-    marginBottom: 16,
-  },
-  listTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  listSubtitle: {
-    fontSize: 14,
-    color: '#B8B8D1',
-  },
-  listContent: {
-    paddingBottom: 100,
-  },
-  songItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  songImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-  },
-  songInfo: {
-    flex: 1,
-  },
-  songTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  songArtist: {
-    fontSize: 13,
-    color: '#B8B8D1',
-  },
-  playedAt: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  playIconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playlistsContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  playlistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  playlistImageContainer: {
-    marginRight: 16,
-  },
-  playlistImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-  },
-  placeholderImage: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playlistInfo: {
-    flex: 1,
-  },
-  playlistTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  playlistDescription: {
-    fontSize: 13,
-    color: '#B8B8D1',
-    marginBottom: 4,
-  },
-  playlistDetails: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  deleteButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  historyContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  downloadsContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  downloadInfo: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  paddingBottom: {
-    height: 100,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '85%',
-    backgroundColor: '#1a1a2e',
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    color: '#fff',
-    fontSize: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  cancelButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  createButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#8B5CF6',
-  },
-  createButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-});

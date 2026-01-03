@@ -1,8 +1,8 @@
 // components/ui/WelcomeScreen.tsx
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 
 interface WelcomeScreenProps {
   onNext: () => void;
@@ -10,15 +10,104 @@ interface WelcomeScreenProps {
 }
 
 export default function WelcomeScreen({ onNext, onSkip }: WelcomeScreenProps) {
+  const theme = useTheme();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.xxxl,
+      paddingTop: 100,
+      paddingBottom: 60,
+      backgroundColor: theme.background.primary,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    iconContainer: {
+      marginBottom: spacing.xxxxl,
+      width: 100,
+      height: 100,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.accent.primary + '33',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    title: {
+      fontSize: fontSize.xxxl,
+      fontWeight: fontWeight.bold,
+      color: theme.text.primary,
+      textAlign: 'center',
+      marginBottom: spacing.xl,
+    },
+    subtitle: {
+      fontSize: fontSize.base,
+      color: theme.text.secondary,
+      textAlign: 'center',
+      lineHeight: 24,
+      marginBottom: 60,
+    },
+    pagination: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: spacing.sm,
+    },
+    dot: {
+      width: 8,
+      height: 8,
+      borderRadius: borderRadius.xs,
+      backgroundColor: theme.border.secondary,
+    },
+    activeDot: {
+      backgroundColor: theme.accent.primary,
+      width: spacing.xxl,
+    },
+    nextButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.accent.primary,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.xxxxl,
+      borderRadius: borderRadius.full,
+      alignSelf: 'center',
+      minWidth: 120,
+      gap: spacing.sm,
+      shadowColor: theme.accent.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    nextButtonText: {
+      color: theme.text.inverse,
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+    },
+    skipButton: {
+      position: 'absolute',
+      top: 50,
+      right: spacing.xxxl,
+      zIndex: 10,
+    },
+    skipButtonText: {
+      color: theme.accent.primary,
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+    },
+  });
+
   return (
-    <LinearGradient colors={['#1a1a2e', '#16213e', '#533483']} style={styles.container}>
+    <View style={styles.container}>
       <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
         <Text style={styles.skipButtonText}>Skip</Text>
       </TouchableOpacity>
 
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <Ionicons name='musical-notes' size={64} color='#8B5CF6' />
+          <Ionicons name='musical-notes' size={64} color={theme.accent.primary} />
         </View>
 
         <Text style={styles.title}>Welcome to Melodify</Text>
@@ -37,82 +126,8 @@ export default function WelcomeScreen({ onNext, onSkip }: WelcomeScreenProps) {
 
       <TouchableOpacity style={styles.nextButton} onPress={onNext}>
         <Text style={styles.nextButtonText}>Next</Text>
-        <Ionicons name='chevron-forward' size={20} color='#fff' />
+        <Ionicons name='chevron-forward' size={iconSize.sm} color={theme.text.inverse} />
       </TouchableOpacity>
-    </LinearGradient>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'space-between',
-    paddingHorizontal: 30,
-    paddingTop: 100,
-    paddingBottom: 60,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconContainer: {
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#B8B8D1',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 60,
-  },
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#4A4A6A',
-  },
-  activeDot: {
-    backgroundColor: '#8B5CF6',
-  },
-  nextButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#8B5CF6',
-    paddingVertical: 16,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-    alignSelf: 'center',
-    minWidth: 120,
-    gap: 8,
-  },
-  nextButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  skipButton: {
-    position: 'absolute',
-    top: 50,
-    right: 30,
-    zIndex: 10,
-  },
-  skipButtonText: {
-    color: '#8B5CF6',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

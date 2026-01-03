@@ -1,14 +1,15 @@
 // components/ui/SignInScreen.tsx
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 
 interface SignInScreenProps {
   onSkip?: () => void;
 }
 
 export default function SignInScreen({ onSkip }: SignInScreenProps = {}) {
+  const theme = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -18,7 +19,6 @@ export default function SignInScreen({ onSkip }: SignInScreenProps = {}) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-    // Add sign in logic here
     console.log('Sign in:', { email, password });
   };
 
@@ -26,8 +26,139 @@ export default function SignInScreen({ onSkip }: SignInScreenProps = {}) {
     console.log(`Sign in with ${provider}`);
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      paddingHorizontal: spacing.xxxl,
+      paddingTop: 60,
+      backgroundColor: theme.background.primary,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    title: {
+      fontSize: fontSize.xxxxl,
+      fontWeight: fontWeight.bold,
+      color: theme.text.primary,
+      textAlign: 'center',
+      marginBottom: spacing.md,
+    },
+    subtitle: {
+      fontSize: fontSize.base,
+      color: theme.text.secondary,
+      textAlign: 'center',
+      marginBottom: spacing.xxxxl,
+    },
+    form: {
+      backgroundColor: theme.card.background,
+      borderRadius: borderRadius.xl,
+      padding: spacing.xxxl,
+      marginBottom: spacing.xxxl,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      shadowColor: theme.shadow.color,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.shadow.opacity,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    inputContainer: {
+      marginBottom: spacing.xl,
+    },
+    label: {
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+      marginBottom: spacing.sm,
+      fontWeight: fontWeight.medium,
+    },
+    inputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.background.secondary,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+    },
+    inputIcon: {
+      marginRight: spacing.md,
+    },
+    input: {
+      flex: 1,
+      color: theme.text.primary,
+      fontSize: fontSize.base,
+    },
+    signInButton: {
+      backgroundColor: theme.accent.primary,
+      paddingVertical: spacing.lg,
+      borderRadius: borderRadius.full,
+      alignItems: 'center',
+      marginTop: spacing.md,
+      shadowColor: theme.accent.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    signInButtonText: {
+      color: theme.text.inverse,
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+    },
+    socialSection: {
+      alignItems: 'center',
+    },
+    orText: {
+      color: theme.text.tertiary,
+      fontSize: fontSize.sm,
+      marginBottom: spacing.xl,
+    },
+    socialButtons: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+      marginBottom: spacing.xxxl,
+    },
+    socialButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.card.background,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.xxl,
+      borderRadius: borderRadius.full,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      gap: spacing.sm,
+    },
+    socialButtonText: {
+      color: theme.text.primary,
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.medium,
+    },
+    signUpLink: {
+      alignItems: 'center',
+    },
+    signUpText: {
+      color: theme.accent.primary,
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.semibold,
+    },
+    skipButton: {
+      position: 'absolute',
+      top: 50,
+      right: spacing.xxxl,
+      zIndex: 10,
+    },
+    skipButtonText: {
+      color: theme.accent.primary,
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+    },
+  });
+
   return (
-    <LinearGradient colors={['#1a1a2e', '#16213e', '#533483']} style={styles.container}>
+    <View style={styles.container}>
       {onSkip && (
         <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
           <Text style={styles.skipButtonText}>Skip</Text>
@@ -42,11 +173,11 @@ export default function SignInScreen({ onSkip }: SignInScreenProps = {}) {
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Email Address</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name='mail-outline' size={20} color='#B8B8D1' style={styles.inputIcon} />
+              <Ionicons name='mail-outline' size={iconSize.sm} color={theme.text.secondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder='your@email.com'
-                placeholderTextColor='#6B7280'
+                placeholderTextColor={theme.text.tertiary}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType='email-address'
@@ -58,17 +189,17 @@ export default function SignInScreen({ onSkip }: SignInScreenProps = {}) {
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Password</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name='lock-closed-outline' size={20} color='#B8B8D1' style={styles.inputIcon} />
+              <Ionicons name='lock-closed-outline' size={iconSize.sm} color={theme.text.secondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder='••••••••'
-                placeholderTextColor='#6B7280'
+                placeholderTextColor={theme.text.tertiary}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color='#B8B8D1' />
+                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={iconSize.sm} color={theme.text.secondary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -87,7 +218,7 @@ export default function SignInScreen({ onSkip }: SignInScreenProps = {}) {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.socialButton} onPress={() => handleSocialLogin('Apple')}>
-              <Ionicons name='logo-apple' size={18} color='#fff' />
+              <Ionicons name='logo-apple' size={iconSize.lg} color={theme.text.primary} />
               <Text style={styles.socialButtonText}>Apple</Text>
             </TouchableOpacity>
           </View>
@@ -97,122 +228,6 @@ export default function SignInScreen({ onSkip }: SignInScreenProps = {}) {
           <Text style={styles.signUpText}>Don't have an account? Sign up</Text>
         </TouchableOpacity>
       </View>
-    </LinearGradient>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 30,
-    paddingTop: 60,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#B8B8D1',
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  form: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    padding: 30,
-    marginBottom: 30,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    color: '#B8B8D1',
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    color: '#fff',
-    fontSize: 16,
-  },
-  signInButton: {
-    backgroundColor: '#8B5CF6',
-    paddingVertical: 16,
-    borderRadius: 25,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  signInButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  socialSection: {
-    alignItems: 'center',
-  },
-  orText: {
-    color: '#6B7280',
-    fontSize: 14,
-    marginBottom: 20,
-  },
-  socialButtons: {
-    flexDirection: 'row',
-    gap: 15,
-    marginBottom: 30,
-  },
-  socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    gap: 8,
-  },
-  socialButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  signUpLink: {
-    alignItems: 'center',
-  },
-  signUpText: {
-    color: '#8B5CF6',
-    fontSize: 14,
-  },
-  skipButton: {
-    position: 'absolute',
-    top: 50,
-    right: 30,
-    zIndex: 10,
-  },
-  skipButtonText: {
-    color: '#8B5CF6',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
