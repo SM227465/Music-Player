@@ -1,6 +1,6 @@
 // components/ui/HomeScreen.tsx
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -12,84 +12,41 @@ import {
   View,
 } from 'react-native';
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
+import { useHomeData } from '@/hooks/useJioSaavnQueries';
+import { Song } from '@/types/searchSong';
 
-interface Release {
+interface ListViewItem {
   id: string;
   title: string;
   url: string;
   image: string;
-  subtitle: string;
+  subtitle?: string;
+  followers?: string;
 }
 
-interface Playlist {
-  id: string;
-  title: string;
-  url: string;
-  image: string;
-  subtitle: string;
-  followers: string;
+type ViewMode = 'home' | 'list' | 'playlist';
+
+interface ViewState {
+  mode: ViewMode;
+  title?: string;
+  apiUrl?: string;
+  playlistUrl?: string;
 }
 
-interface Chart {
-  id: string;
-  title: string;
-  url: string;
-  image: string;
-  subtitle: string;
+interface HomeScreenProps {
+  onSongPress?: (song: Song) => void;
+  onPlayQueue?: (songs: Song[], startIndex: number) => void;
 }
 
-interface Artist {
-  id: string;
-  name: string;
-  url: string;
-  image: string;
-  fans: string;
-}
-
-export default function HomeScreen() {
+export default function HomeScreen({ onSongPress, onPlayQueue }: HomeScreenProps) {
   const theme = useTheme();
-  const [newReleases, setNewReleases] = useState<Release[]>([]);
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [charts, setCharts] = useState<Chart[]>([]);
-  const [artists, setArtists] = useState<Artist[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [viewState, setViewState] = useState<ViewState>({ mode: 'home' });
 
-  const fetchData = async () => {
-    try {
-      const [releasesRes, playlistsRes, chartsRes, artistsRes] = await Promise.all([
-        fetch('https://jiosaavn-scraper.onrender.com/api/jiosaavn/new-releases'),
-        fetch('https://jiosaavn-scraper.onrender.com/api/jiosaavn/top-playlists'),
-        fetch('https://jiosaavn-scraper.onrender.com/api/jiosaavn/top-charts'),
-        fetch('https://jiosaavn-scraper.onrender.com/api/jiosaavn/top-artists'),
-      ]);
-
-      const [releasesData, playlistsData, chartsData, artistsData] = await Promise.all([
-        releasesRes.json(),
-        playlistsRes.json(),
-        chartsRes.json(),
-        artistsRes.json(),
-      ]);
-
-      if (releasesData.success) setNewReleases(releasesData.data.slice(0, 10));
-      if (playlistsData.success) setPlaylists(playlistsData.data.slice(0, 10));
-      if (chartsData.success) setCharts(chartsData.data.slice(0, 10));
-      if (artistsData.success) setArtists(artistsData.data.slice(0, 10));
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Use React Query hooks
+  const { newReleases, playlists, charts, artists, isLoading, refetch } = useHomeData();
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    fetchData();
+    refetch();
   };
 
   const getGreeting = () => {
@@ -102,6 +59,44 @@ export default function HomeScreen() {
   const getImageUrl = (url: string, quality: string = '500x500') => {
     return url.replace('150x150', quality);
   };
+
+  const handleSeeAll = (title: string, apiUrl: string) => {
+    setViewState({ mode: 'list', title, apiUrl });
+  };
+
+  const handlePlaylistPress = (playlistUrl: string) => {
+    setViewState({ mode: 'playlist', playlistUrl });
+  };
+
+  const handleBackToHome = () => {
+    setViewState({ mode: 'home' });
+  };
+
+  // Import components dynamically
+  const ListViewScreen = require('./ListViewScreen').default;
+  const PlaylistDetailScreen = require('./PlaylistDetailScreen').default;
+
+  if (viewState.mode === 'list') {
+    return (
+      <ListViewScreen
+        title={viewState.title!}
+        apiUrl={viewState.apiUrl!}
+        onBack={handleBackToHome}
+        onItemPress={(item: ListViewItem) => handlePlaylistPress(item.url)}
+      />
+    );
+  }
+
+  if (viewState.mode === 'playlist') {
+    return (
+      <PlaylistDetailScreen
+        playlistUrl={viewState.playlistUrl!}
+        onBack={handleBackToHome}
+        onSongPress={onSongPress}
+        onPlayQueue={onPlayQueue}
+      />
+    );
+  }
 
   const styles = StyleSheet.create({
     container: {
@@ -170,11 +165,11 @@ export default function HomeScreen() {
       fontWeight: fontWeight.semibold,
     },
     scrollContainer: {
-      paddingHorizontal: spacing.xl,
+      paddingLeft: spacing.xl,
     },
     releaseCard: {
       width: 160,
-      marginRight: spacing.md,
+      marginRight: spacing.lg,
     },
     releaseImageContainer: {
       position: 'relative',
@@ -214,7 +209,7 @@ export default function HomeScreen() {
     },
     playlistCard: {
       width: 180,
-      marginRight: spacing.md,
+      marginRight: spacing.lg,
     },
     playlistImage: {
       width: 180,
@@ -235,7 +230,7 @@ export default function HomeScreen() {
     },
     chartCard: {
       width: 140,
-      marginRight: spacing.md,
+      marginRight: spacing.lg,
     },
     chartImage: {
       width: 140,
@@ -275,7 +270,7 @@ export default function HomeScreen() {
     },
   });
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
         <View style={styles.header}>
@@ -309,7 +304,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={isLoading}
             onRefresh={handleRefresh}
             tintColor={theme.accent.primary}
             colors={[theme.accent.primary]}
@@ -321,7 +316,11 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>New Releases</Text>
-              <TouchableOpacity>
+              <TouchableOpacity
+                onPress={() =>
+                  handleSeeAll('New Releases', 'https://jiosaavn-scraper.onrender.com/api/jiosaavn/new-releases')
+                }
+              >
                 <Text style={styles.seeAllText}>See All</Text>
               </TouchableOpacity>
             </View>
@@ -329,9 +328,16 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.scrollContainer}
+              nestedScrollEnabled={true}
             >
-              {newReleases.map((release) => (
-                <TouchableOpacity key={release.id} style={styles.releaseCard}>
+              {newReleases.slice(0, 10).map((release, index) => (
+                <TouchableOpacity
+                  key={release.id}
+                  style={[
+                    styles.releaseCard,
+                    index === newReleases.slice(0, 10).length - 1 && { marginRight: spacing.xl },
+                  ]}
+                >
                   <View style={styles.releaseImageContainer}>
                     <Image
                       source={{ uri: getImageUrl(release.image) }}
@@ -361,7 +367,11 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Top Playlists</Text>
-              <TouchableOpacity>
+              <TouchableOpacity
+                onPress={() =>
+                  handleSeeAll('Top Playlists', 'https://jiosaavn-scraper.onrender.com/api/jiosaavn/top-playlists')
+                }
+              >
                 <Text style={styles.seeAllText}>See All</Text>
               </TouchableOpacity>
             </View>
@@ -369,16 +379,24 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.scrollContainer}
+              nestedScrollEnabled={true}
             >
-              {playlists.map((playlist) => (
-                <TouchableOpacity key={playlist.id} style={styles.playlistCard}>
+              {playlists.slice(0, 10).map((playlist, index) => (
+                <TouchableOpacity
+                  key={playlist.id}
+                  style={[
+                    styles.playlistCard,
+                    index === playlists.slice(0, 10).length - 1 && { marginRight: spacing.xl },
+                  ]}
+                  onPress={() => handlePlaylistPress(playlist.url)}
+                >
                   <View style={styles.releaseImageContainer}>
                     <Image
                       source={{ uri: getImageUrl(playlist.image) }}
                       style={styles.playlistImage}
                       resizeMode='cover'
                     />
-                    <TouchableOpacity style={styles.playButton}>
+                    <TouchableOpacity style={styles.playButton} onPress={() => handlePlaylistPress(playlist.url)}>
                       <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
                     </TouchableOpacity>
                   </View>
@@ -399,7 +417,11 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Top Charts</Text>
-              <TouchableOpacity>
+              <TouchableOpacity
+                onPress={() =>
+                  handleSeeAll('Top Charts', 'https://jiosaavn-scraper.onrender.com/api/jiosaavn/top-charts')
+                }
+              >
                 <Text style={styles.seeAllText}>See All</Text>
               </TouchableOpacity>
             </View>
@@ -407,9 +429,13 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.scrollContainer}
+              nestedScrollEnabled={true}
             >
-              {charts.map((chart) => (
-                <TouchableOpacity key={chart.id} style={styles.chartCard}>
+              {charts.slice(0, 10).map((chart, index) => (
+                <TouchableOpacity
+                  key={chart.id}
+                  style={[styles.chartCard, index === charts.slice(0, 10).length - 1 && { marginRight: spacing.xl }]}
+                >
                   <View style={styles.releaseImageContainer}>
                     <Image
                       source={{ uri: getImageUrl(chart.image) }}
@@ -434,7 +460,11 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Top Artists</Text>
-              <TouchableOpacity>
+              <TouchableOpacity
+                onPress={() =>
+                  handleSeeAll('Top Artists', 'https://jiosaavn-scraper.onrender.com/api/jiosaavn/top-artists')
+                }
+              >
                 <Text style={styles.seeAllText}>See All</Text>
               </TouchableOpacity>
             </View>
@@ -442,9 +472,13 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.scrollContainer}
+              nestedScrollEnabled={true}
             >
-              {artists.map((artist) => (
-                <TouchableOpacity key={artist.id} style={styles.artistCard}>
+              {artists.slice(0, 10).map((artist, index) => (
+                <TouchableOpacity
+                  key={artist.id}
+                  style={[styles.artistCard, index === artists.slice(0, 10).length - 1 && { marginRight: spacing.xl }]}
+                >
                   <Image
                     source={{ uri: getImageUrl(artist.image) }}
                     style={styles.artistImage}

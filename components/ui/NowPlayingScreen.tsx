@@ -28,7 +28,6 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToHistory } = useHistory();
-  const { queue, playNext, playPrevious, hasNext, hasPrevious, removeFromQueue, clearQueue } = useQueue();
   const [isLiked, setIsLiked] = useState(false);
   const [isShuffling, setIsShuffling] = useState(false);
   const [repeatMode, setRepeatMode] = useState(0);
@@ -38,8 +37,26 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
   const [showLyricsModal, setShowLyricsModal] = useState(false);
   const [isSliding, setIsSliding] = useState(false);
   const slideAnim = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
-  const { getProgress, playAudio, duration, seekTo, togglePlayPause, isLoading, formatTime, position, isPlaying } = audioPlayer;
+  const {
+    getProgress,
+    playAudio,
+    duration,
+    seekTo,
+    togglePlayPause,
+    isLoading,
+    formatTime,
+    position,
+    isPlaying,
+    queue,
+    currentIndex,
+    playNext,
+    playPrevious,
+    removeFromQueue,
+    clearQueue
+  } = audioPlayer;
   const progress = getProgress() / 100;
+  const hasNext = currentIndex < queue.length - 1;
+  const hasPrevious = currentIndex > 0;
 
   useEffect(() => {
     setIsLiked(isFavorite(currentTrack.id));
@@ -127,25 +144,19 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
     }
   }, [isPlaying, currentTrack.id]);
 
-  const handleNextTrack = useCallback(() => {
-    const nextSong = playNext();
-    if (nextSong) {
-      const audioUrl = getHighestQualityAudioUrl(nextSong.downloadUrl);
-      if (audioUrl) {
-        playAudio(audioUrl);
-      }
+  const handleNextTrack = useCallback(async () => {
+    if (hasNext) {
+      await addToHistory(currentTrack);
+      await playNext();
     }
-  }, [playNext, playAudio]);
+  }, [hasNext, playNext, addToHistory, currentTrack]);
 
-  const handlePreviousTrack = useCallback(() => {
-    const prevSong = playPrevious();
-    if (prevSong) {
-      const audioUrl = getHighestQualityAudioUrl(prevSong.downloadUrl);
-      if (audioUrl) {
-        playAudio(audioUrl);
-      }
+  const handlePreviousTrack = useCallback(async () => {
+    if (hasPrevious) {
+      await addToHistory(currentTrack);
+      await playPrevious();
     }
-  }, [playPrevious, playAudio]);
+  }, [hasPrevious, playPrevious, addToHistory, currentTrack]);
 
   const handleQueueSongPress = useCallback((song: Song, index: number) => {
     const audioUrl = getHighestQualityAudioUrl(song.downloadUrl);

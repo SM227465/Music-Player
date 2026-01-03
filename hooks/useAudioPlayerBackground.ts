@@ -12,6 +12,8 @@ export const useAudioPlayerBackground = () => {
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [queue, setQueue] = useState<Song[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const isSeekingRef = useRef(false);
   const lastPositionRef = useRef(0);
@@ -44,9 +46,59 @@ export const useAudioPlayerBackground = () => {
         lastPositionRef.current = statusPosition;
       }
     }
-  }, [status.isLoaded, status.playing, status.duration, status.currentTime, isPlaying, duration]);
 
-  // Play audio function
+    // Auto-play next song when current song ends
+    if (status.isLoaded && !status.playing && statusPosition > 0 && statusDuration > 0) {
+      const isNearEnd = Math.abs(statusPosition - statusDuration) < 1;
+      if (isNearEnd && queue.length > 0 && currentIndex < queue.length - 1) {
+        playNext();
+      }
+    }
+  }, [status.isLoaded, status.playing, status.duration, status.currentTime, isPlaying, duration, queue.length, currentIndex]);
+
+  // Play a specific song from the queue by index
+  const playSongAtIndex = useCallback(async (index: number) => {
+    if (index < 0 || index >= queue.length) {
+      console.error('Invalid queue index:', index);
+      return;
+    }
+
+    const song = queue[index];
+    try {
+      setIsLoading(true);
+
+      // Get the best quality audio URL
+      const audioUrl = song.downloadUrl?.find(u => u.quality === '320kbps')?.url ||
+                      song.downloadUrl?.find(u => u.quality === '160kbps')?.url ||
+                      song.downloadUrl?.[0]?.url;
+
+      if (!audioUrl) {
+        console.error('No audio URL available for song:', song.name);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Playing:', song.name, 'from URL:', audioUrl);
+
+      // Replace the current track
+      player.replace(audioUrl);
+      setCurrentTrack(song);
+      setCurrentIndex(index);
+      setPosition(0);
+      lastPositionRef.current = 0;
+      setDuration(0);
+
+      // Start playback
+      player.play();
+      setIsPlaying(true);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      setIsLoading(false);
+    }
+  }, [queue, player]);
+
+  // Play audio function - sets up queue and plays first song
   const playAudio = useCallback(async (song: Song) => {
     try {
       // Validate song object
@@ -54,6 +106,10 @@ export const useAudioPlayerBackground = () => {
         console.error('Invalid song object passed to playAudio:', song);
         return;
       }
+
+      // Set queue with single song and play it
+      setQueue([song]);
+      setCurrentIndex(0);
 
       setIsLoading(true);
 
@@ -86,6 +142,62 @@ export const useAudioPlayerBackground = () => {
       setIsLoading(false);
     }
   }, [player]);
+
+  // Play queue - sets up queue with multiple songs
+  const playQueue = useCallback(async (songs: Song[], startIndex: number = 0) => {
+    if (!songs || songs.length === 0) {
+      console.error('Empty songs array passed to playQueue');
+      return;
+    }
+
+    setQueue(songs);
+    await playSongAtIndex(startIndex);
+  }, [playSongAtIndex]);
+
+  // Play next song in queue
+  const playNext = useCallback(async () => {
+    if (currentIndex < queue.length - 1) {
+      await playSongAtIndex(currentIndex + 1);
+    }
+  }, [currentIndex, queue.length, playSongAtIndex]);
+
+  // Play previous song in queue
+  const playPrevious = useCallback(async () => {
+    if (currentIndex > 0) {
+      await playSongAtIndex(currentIndex - 1);
+    }
+  }, [currentIndex, playSongAtIndex]);
+
+  // Add song to queue
+  const addToQueue = useCallback((song: Song) => {
+    setQueue(prevQueue => [...prevQueue, song]);
+  }, []);
+
+  // Remove song from queue by index
+  const removeFromQueue = useCallback((index: number) => {
+    setQueue(prevQueue => {
+      const newQueue = [...prevQueue];
+      newQueue.splice(index, 1);
+
+      // Adjust current index if needed
+      if (index < currentIndex) {
+        setCurrentIndex(prev => prev - 1);
+      } else if (index === currentIndex) {
+        // If we're removing the current song, stop playback
+        player.pause();
+        setCurrentTrack(null);
+        setIsPlaying(false);
+      }
+
+      return newQueue;
+    });
+  }, [currentIndex, player]);
+
+  // Clear queue
+  const clearQueue = useCallback(() => {
+    setQueue([]);
+    setCurrentIndex(0);
+  }, []);
 
   // Pause audio
   const pauseAudio = useCallback(async () => {
@@ -189,7 +301,15 @@ export const useAudioPlayerBackground = () => {
     duration,
     position,
     isLoading,
+    queue,
+    currentIndex,
     playAudio,
+    playQueue,
+    playNext,
+    playPrevious,
+    addToQueue,
+    removeFromQueue,
+    clearQueue,
     pauseAudio,
     resumeAudio,
     togglePlayPause,

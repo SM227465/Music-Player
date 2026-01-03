@@ -39,6 +39,11 @@ function MainApp() {
     setShowNowPlaying(true);
   };
 
+  const handlePlayQueue = async (songs: Song[], startIndex: number) => {
+    await audioPlayer.playQueue(songs, startIndex);
+    setShowNowPlaying(true);
+  };
+
   const handleCloseMiniPlayer = async () => {
     await audioPlayer.stopAndClear();
     setShowNowPlaying(false);
@@ -47,7 +52,7 @@ function MainApp() {
   const renderScreen = () => {
     switch (activeTab) {
       case 'home':
-        return <HomeScreen />;
+        return <HomeScreen onSongPress={handleSongPress} onPlayQueue={handlePlayQueue} />;
       case 'search':
         return <SearchScreen onSongPress={handleSongPress} />;
       case 'library':
@@ -55,7 +60,7 @@ function MainApp() {
       case 'profile':
         return <ProfileScreen />;
       default:
-        return <HomeScreen />;
+        return <HomeScreen onSongPress={handleSongPress} onPlayQueue={handlePlayQueue} />;
     }
   };
 
@@ -71,6 +76,8 @@ function MainApp() {
             isVisible={!showNowPlaying}
             audioPlayer={audioPlayer}
             onClose={handleCloseMiniPlayer}
+            onNext={audioPlayer.queue.length > 1 ? audioPlayer.playNext : undefined}
+            onPrevious={audioPlayer.currentIndex > 0 ? audioPlayer.playPrevious : undefined}
           />
         )}
 
