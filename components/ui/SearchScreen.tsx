@@ -226,61 +226,62 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
     );
   };
 
-  const renderFilteredResults = () => {
+  const handleEndReached = () => {
     switch (activeFilter) {
       case 'Songs':
-        return (
-          <FlatList
-            data={songResults}
-            renderItem={renderSongItem}
-            keyExtractor={(item, index) => `${item.id}-${index}`}
-            scrollEnabled={false}
-            showsVerticalScrollIndicator={false}
-            onEndReached={() => {
-              if (hasNextSongs && !isFetchingNextSongs) {
-                fetchNextSongs();
-              }
-            }}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={renderLoadingFooter(isFetchingNextSongs)}
-          />
-        );
+        if (hasNextSongs && !isFetchingNextSongs) {
+          fetchNextSongs();
+        }
+        break;
       case 'Albums':
-        return (
-          <FlatList
-            data={albumResults}
-            renderItem={renderAlbumItem}
-            keyExtractor={(item, index) => `${item.id}-${index}`}
-            scrollEnabled={false}
-            showsVerticalScrollIndicator={false}
-            onEndReached={() => {
-              if (hasNextAlbums && !isFetchingNextAlbums) {
-                fetchNextAlbums();
-              }
-            }}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={renderLoadingFooter(isFetchingNextAlbums)}
-          />
-        );
+        if (hasNextAlbums && !isFetchingNextAlbums) {
+          fetchNextAlbums();
+        }
+        break;
       case 'Artists':
-        return (
-          <FlatList
-            data={artistResults}
-            renderItem={renderArtistItem}
-            keyExtractor={(item, index) => `${item.id}-${index}`}
-            scrollEnabled={false}
-            showsVerticalScrollIndicator={false}
-            onEndReached={() => {
-              if (hasNextArtists && !isFetchingNextArtists) {
-                fetchNextArtists();
-              }
-            }}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={renderLoadingFooter(isFetchingNextArtists)}
-          />
-        );
+        if (hasNextArtists && !isFetchingNextArtists) {
+          fetchNextArtists();
+        }
+        break;
+    }
+  };
+
+  const getFilteredData = () => {
+    switch (activeFilter) {
+      case 'Songs':
+        return songResults;
+      case 'Albums':
+        return albumResults;
+      case 'Artists':
+        return artistResults;
+      default:
+        return [];
+    }
+  };
+
+  const renderFilteredItem = ({ item }: { item: any }) => {
+    switch (activeFilter) {
+      case 'Songs':
+        return renderSongItem({ item });
+      case 'Albums':
+        return renderAlbumItem({ item });
+      case 'Artists':
+        return renderArtistItem({ item });
       default:
         return null;
+    }
+  };
+
+  const getIsFetchingNext = () => {
+    switch (activeFilter) {
+      case 'Songs':
+        return isFetchingNextSongs;
+      case 'Albums':
+        return isFetchingNextAlbums;
+      case 'Artists':
+        return isFetchingNextArtists;
+      default:
+        return false;
     }
   };
 
@@ -346,75 +347,57 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
           </View>
 
           {/* Search Results */}
-          <ScrollView style={styles.resultsContainer} showsVerticalScrollIndicator={false}>
-            {isLoading ? (
-              <ActivityIndicator size='large' color='#8B5CF6' style={styles.loader} />
-            ) : (
+          {isLoading ? (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size='large' color='#8B5CF6' />
+            </View>
+          ) : activeFilter === 'All' && globalResults?.data ? (
+            <ScrollView style={styles.resultsContainer} showsVerticalScrollIndicator={false}>
               <View style={styles.results}>
-                {activeFilter === 'All' && globalResults?.data ? (
-                  <>
-                    {/* Songs Section */}
-                    {globalResults.data.songs?.results && globalResults.data.songs.results.length > 0 && (
-                      <View style={styles.categorySection}>
-                        <Text style={styles.categoryTitle}>Songs</Text>
-                        <FlatList
-                          data={globalResults.data.songs.results.slice(0, 5)}
-                          renderItem={renderGlobalSongItem}
-                          keyExtractor={(item) => item.id}
-                          scrollEnabled={false}
-                          showsVerticalScrollIndicator={false}
-                        />
-                      </View>
-                    )}
+                {/* Songs Section */}
+                {globalResults.data.songs?.results && globalResults.data.songs.results.length > 0 && (
+                  <View style={styles.categorySection}>
+                    <Text style={styles.categoryTitle}>Songs</Text>
+                    <FlatList
+                      data={globalResults.data.songs.results.slice(0, 5)}
+                      renderItem={renderGlobalSongItem}
+                      keyExtractor={(item) => item.id}
+                      scrollEnabled={false}
+                      showsVerticalScrollIndicator={false}
+                    />
+                  </View>
+                )}
 
-                    {/* Albums Section */}
-                    {globalResults.data.albums?.results && globalResults.data.albums.results.length > 0 && (
-                      <View style={styles.categorySection}>
-                        <Text style={styles.categoryTitle}>Albums</Text>
-                        {/* <FlatList
-                          data={globalResults.data.albums.results.slice(0, 5)}
-                          renderItem={renderGlobalAlbumItem}
-                          keyExtractor={(item) => item.id}
-                          scrollEnabled={false}
-                          showsVerticalScrollIndicator={false}
-                        /> */}
-                      </View>
-                    )}
+                {/* Albums Section */}
+                {globalResults.data.albums?.results && globalResults.data.albums.results.length > 0 && (
+                  <View style={styles.categorySection}>
+                    <Text style={styles.categoryTitle}>Albums</Text>
+                  </View>
+                )}
 
-                    {/* Artists Section */}
-                    {globalResults.data.artists?.results && globalResults.data.artists.results.length > 0 && (
-                      <View style={styles.categorySection}>
-                        <Text style={styles.categoryTitle}>Artists</Text>
-                        {/* <FlatList
-                          data={globalResults.data.artists.results.slice(0, 5)}
-                          renderItem={renderGlobalArtistItem}
-                          keyExtractor={(item) => item.id}
-                          scrollEnabled={false}
-                          showsVerticalScrollIndicator={false}
-                        /> */}
-                      </View>
-                    )}
+                {/* Artists Section */}
+                {globalResults.data.artists?.results && globalResults.data.artists.results.length > 0 && (
+                  <View style={styles.categorySection}>
+                    <Text style={styles.categoryTitle}>Artists</Text>
+                  </View>
+                )}
 
-                    {/* Playlists Section */}
-                    {globalResults.data.playlists?.results && globalResults.data.playlists.results.length > 0 && (
-                      <View style={styles.categorySection}>
-                        <Text style={styles.categoryTitle}>Playlists</Text>
-                        <FlatList
-                          data={globalResults.data.playlists.results.slice(0, 5)}
-                          renderItem={renderPlaylistItem}
-                          keyExtractor={(item) => item.id}
-                          scrollEnabled={false}
-                          showsVerticalScrollIndicator={false}
-                        />
-                      </View>
-                    )}
-                  </>
-                ) : (
-                  renderFilteredResults()
+                {/* Playlists Section */}
+                {globalResults.data.playlists?.results && globalResults.data.playlists.results.length > 0 && (
+                  <View style={styles.categorySection}>
+                    <Text style={styles.categoryTitle}>Playlists</Text>
+                    <FlatList
+                      data={globalResults.data.playlists.results.slice(0, 5)}
+                      renderItem={renderPlaylistItem}
+                      keyExtractor={(item) => item.id}
+                      scrollEnabled={false}
+                      showsVerticalScrollIndicator={false}
+                    />
+                  </View>
                 )}
 
                 {/* No Results Message */}
-                {!isLoading && !hasResults() && (
+                {!hasResults() && (
                   <View style={styles.noResults}>
                     <Ionicons name='search-outline' size={64} color='#6B7280' />
                     <Text style={styles.noResultsText}>No results found</Text>
@@ -422,8 +405,29 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
                   </View>
                 )}
               </View>
-            )}
-          </ScrollView>
+            </ScrollView>
+          ) : (
+            <FlatList
+              data={getFilteredData()}
+              renderItem={renderFilteredItem}
+              keyExtractor={(item, index) => `${item.id}-${index}`}
+              style={styles.resultsContainer}
+              contentContainerStyle={styles.results}
+              showsVerticalScrollIndicator={false}
+              onEndReached={handleEndReached}
+              onEndReachedThreshold={0.3}
+              ListFooterComponent={renderLoadingFooter(getIsFetchingNext())}
+              ListEmptyComponent={
+                !isLoading ? (
+                  <View style={styles.noResults}>
+                    <Ionicons name='search-outline' size={64} color='#6B7280' />
+                    <Text style={styles.noResultsText}>No results found</Text>
+                    <Text style={styles.noResultsSubtext}>Try different keywords or check your spelling</Text>
+                  </View>
+                ) : null
+              }
+            />
+          )}
         </>
       ) : (
         /* Default State */
@@ -652,6 +656,12 @@ const styles = StyleSheet.create({
   },
   loader: {
     paddingVertical: 40,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
   },
   noResults: {
     alignItems: 'center',

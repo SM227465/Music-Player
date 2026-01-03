@@ -6,11 +6,16 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface WelcomeScreenProps {
   onNext: () => void;
+  onSkip: () => void;
 }
 
-export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
+export default function WelcomeScreen({ onNext, onSkip }: WelcomeScreenProps) {
   return (
     <LinearGradient colors={['#1a1a2e', '#16213e', '#533483']} style={styles.container}>
+      <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
+        <Text style={styles.skipButtonText}>Skip</Text>
+      </TouchableOpacity>
+
       <View style={styles.content}>
         <View style={styles.iconContainer}>
           <Ionicons name='musical-notes' size={64} color='#8B5CF6' />
@@ -96,6 +101,17 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  skipButton: {
+    position: 'absolute',
+    top: 50,
+    right: 30,
+    zIndex: 10,
+  },
+  skipButtonText: {
+    color: '#8B5CF6',
     fontSize: 16,
     fontWeight: '600',
   },

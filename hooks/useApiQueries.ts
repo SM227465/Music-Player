@@ -18,10 +18,11 @@ export const useGlobalSearch = (query: string, enabled: boolean = true) => {
 export const useSearchSongsInfinite = (query: string) => {
   return useInfiniteQuery({
     queryKey: ['search', 'songs', 'infinite', query],
-    queryFn: ({ pageParam = 1 }) => searchService.searchSongs(query, pageParam),
+    queryFn: ({ pageParam = 1 }) => searchService.searchSongs(query, pageParam, 10),
     getNextPageParam: (lastPage, allPages) => {
-      // Check if there are more results
-      const hasMore = lastPage.data?.results?.length > 0;
+      // Check if there are more results - if we got less than 10 results, it's the last page
+      const results = lastPage.data?.results || [];
+      const hasMore = results.length === 10;
       return hasMore ? allPages.length + 1 : undefined;
     },
     enabled: query.length > 2,
@@ -33,9 +34,10 @@ export const useSearchSongsInfinite = (query: string) => {
 export const useSearchAlbumsInfinite = (query: string) => {
   return useInfiniteQuery({
     queryKey: ['search', 'albums', 'infinite', query],
-    queryFn: ({ pageParam = 1 }) => searchService.searchAlbums(query, pageParam),
+    queryFn: ({ pageParam = 1 }) => searchService.searchAlbums(query, pageParam, 10),
     getNextPageParam: (lastPage, allPages) => {
-      const hasMore = lastPage.data?.results?.length > 0;
+      const results = lastPage.data?.results || [];
+      const hasMore = results.length === 10;
       return hasMore ? allPages.length + 1 : undefined;
     },
     enabled: query.length > 2,
@@ -47,9 +49,10 @@ export const useSearchAlbumsInfinite = (query: string) => {
 export const useSearchArtistsInfinite = (query: string) => {
   return useInfiniteQuery({
     queryKey: ['search', 'artists', 'infinite', query],
-    queryFn: ({ pageParam = 1 }) => searchService.searchArtists(query, pageParam),
+    queryFn: ({ pageParam = 1 }) => searchService.searchArtists(query, pageParam, 10),
     getNextPageParam: (lastPage, allPages) => {
-      const hasMore = lastPage.data?.results?.length > 0;
+      const results = lastPage.data?.results || [];
+      const hasMore = results.length === 10;
       return hasMore ? allPages.length + 1 : undefined;
     },
     enabled: query.length > 2,

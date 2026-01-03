@@ -4,7 +4,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function SignInScreen() {
+interface SignInScreenProps {
+  onSkip?: () => void;
+}
+
+export default function SignInScreen({ onSkip }: SignInScreenProps = {}) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -24,6 +28,12 @@ export default function SignInScreen() {
 
   return (
     <LinearGradient colors={['#1a1a2e', '#16213e', '#533483']} style={styles.container}>
+      {onSkip && (
+        <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
+          <Text style={styles.skipButtonText}>Skip</Text>
+        </TouchableOpacity>
+      )}
+
       <View style={styles.content}>
         <Text style={styles.title}>Welcome Back</Text>
         <Text style={styles.subtitle}>Sign in to continue to Melodify</Text>
@@ -193,5 +203,16 @@ const styles = StyleSheet.create({
   signUpText: {
     color: '#8B5CF6',
     fontSize: 14,
+  },
+  skipButton: {
+    position: 'absolute',
+    top: 50,
+    right: 30,
+    zIndex: 10,
+  },
+  skipButtonText: {
+    color: '#8B5CF6',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

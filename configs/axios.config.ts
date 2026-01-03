@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://saavn.dev/api';
+const API_BASE_URL = 'https://saavn.sumit.co/api';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -25,7 +25,9 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', error.response?.data || error.message);
-    return Promise.reject(error);
+    console.log(error);
+    
+    // console.error('API Error:', error.response?.data || error.message);
+    // return Promise.reject(error);
   }
 );
