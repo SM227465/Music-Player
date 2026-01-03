@@ -1,27 +1,107 @@
 // components/ui/HomeScreen.tsx
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
+
+interface Release {
+  id: string;
+  title: string;
+  url: string;
+  image: string;
+  subtitle: string;
+}
+
+interface Playlist {
+  id: string;
+  title: string;
+  url: string;
+  image: string;
+  subtitle: string;
+  followers: string;
+}
+
+interface Chart {
+  id: string;
+  title: string;
+  url: string;
+  image: string;
+  subtitle: string;
+}
+
+interface Artist {
+  id: string;
+  name: string;
+  url: string;
+  image: string;
+  fans: string;
+}
 
 export default function HomeScreen() {
   const theme = useTheme();
+  const [newReleases, setNewReleases] = useState<Release[]>([]);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [charts, setCharts] = useState<Chart[]>([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const trendingSongs = [
-    { id: '1', title: 'Blinding Lights', artist: 'The Weeknd', image: require('../../assets/images/react-logo.png') },
-    { id: '2', title: 'Good Days', artist: 'SZA', image: require('../../assets/images/react-logo.png') },
-  ];
+  const fetchData = async () => {
+    try {
+      const [releasesRes, playlistsRes, chartsRes, artistsRes] = await Promise.all([
+        fetch('https://jiosaavn-scraper.onrender.com/api/jiosaavn/new-releases'),
+        fetch('https://jiosaavn-scraper.onrender.com/api/jiosaavn/top-playlists'),
+        fetch('https://jiosaavn-scraper.onrender.com/api/jiosaavn/top-charts'),
+        fetch('https://jiosaavn-scraper.onrender.com/api/jiosaavn/top-artists'),
+      ]);
 
-  const newReleases = [
-    { id: '1', title: 'Montero', artist: 'Lil Nas X', image: require('../../assets/images/react-logo.png') },
-    { id: '2', title: 'Doja Cat', artist: 'Doja Cat', image: require('../../assets/images/react-logo.png') },
-  ];
+      const [releasesData, playlistsData, chartsData, artistsData] = await Promise.all([
+        releasesRes.json(),
+        playlistsRes.json(),
+        chartsRes.json(),
+        artistsRes.json(),
+      ]);
 
-  const moodGenres = [
-    { id: '1', title: 'Pop', image: require('../../assets/images/react-logo.png') },
-    { id: '2', title: 'Rock', image: require('../../assets/images/react-logo.png') },
-  ];
+      if (releasesData.success) setNewReleases(releasesData.data.slice(0, 10));
+      if (playlistsData.success) setPlaylists(playlistsData.data.slice(0, 10));
+      if (chartsData.success) setCharts(chartsData.data.slice(0, 10));
+      if (artistsData.success) setArtists(artistsData.data.slice(0, 10));
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const getImageUrl = (url: string, quality: string = '500x500') => {
+    return url.replace('150x150', quality);
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -33,7 +113,7 @@ export default function HomeScreen() {
       alignItems: 'center',
       paddingTop: 60,
       paddingHorizontal: spacing.xl,
-      paddingBottom: spacing.xl,
+      paddingBottom: spacing.lg,
     },
     greeting: {
       fontSize: fontSize.xxxl,
@@ -62,7 +142,12 @@ export default function HomeScreen() {
     },
     content: {
       flex: 1,
-      paddingHorizontal: spacing.xl,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: 100,
     },
     section: {
       marginBottom: spacing.xxxl,
@@ -72,6 +157,7 @@ export default function HomeScreen() {
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: spacing.lg,
+      paddingHorizontal: spacing.xl,
     },
     sectionTitle: {
       fontSize: fontSize.xl,
@@ -83,122 +169,134 @@ export default function HomeScreen() {
       color: theme.accent.primary,
       fontWeight: fontWeight.semibold,
     },
-    horizontalScroll: {
-      flexDirection: 'row',
-      gap: spacing.lg,
+    scrollContainer: {
+      paddingHorizontal: spacing.xl,
     },
-    trendingCard: {
+    releaseCard: {
       width: 160,
-      backgroundColor: theme.card.background,
+      marginRight: spacing.md,
+    },
+    releaseImageContainer: {
+      position: 'relative',
+      marginBottom: spacing.sm,
+    },
+    releaseImage: {
+      width: 160,
+      height: 160,
       borderRadius: borderRadius.lg,
-      padding: spacing.lg,
-      borderWidth: 1,
-      borderColor: theme.border.primary,
-      shadowColor: theme.shadow.color,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: theme.shadow.opacity,
-      shadowRadius: 8,
-      elevation: 3,
+      backgroundColor: theme.card.background,
     },
-    trendingImage: {
-      width: 128,
-      height: 128,
-      borderRadius: borderRadius.md,
-      marginBottom: spacing.md,
-    },
-    playOverlay: {
+    playButton: {
       position: 'absolute',
-      top: 70,
-      right: 70,
-      width: iconSize.xl,
-      height: iconSize.xl,
+      bottom: spacing.sm,
+      right: spacing.sm,
+      width: iconSize.xxl,
+      height: iconSize.xxl,
       borderRadius: borderRadius.full,
       backgroundColor: theme.accent.primary,
       justifyContent: 'center',
       alignItems: 'center',
       shadowColor: theme.accent.primary,
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.4,
+      shadowOpacity: 0.5,
       shadowRadius: 8,
-      elevation: 4,
+      elevation: 6,
     },
-    trendingInfo: {
-      alignItems: 'center',
-    },
-    trendingTitle: {
+    releaseTitle: {
       fontSize: fontSize.base,
       fontWeight: fontWeight.semibold,
       color: theme.text.primary,
       marginBottom: spacing.xs,
     },
-    trendingArtist: {
+    releaseSubtitle: {
       fontSize: fontSize.sm,
       color: theme.text.secondary,
     },
-    releaseCard: {
-      width: 140,
-      backgroundColor: theme.card.background,
+    playlistCard: {
+      width: 180,
+      marginRight: spacing.md,
+    },
+    playlistImage: {
+      width: 180,
+      height: 180,
       borderRadius: borderRadius.lg,
-      padding: spacing.md,
-      borderWidth: 1,
-      borderColor: theme.border.primary,
-      shadowColor: theme.shadow.color,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: theme.shadow.opacity,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    releaseImage: {
-      width: 116,
-      height: 116,
-      borderRadius: borderRadius.md,
       marginBottom: spacing.sm,
+      backgroundColor: theme.card.background,
     },
-    releaseInfo: {
-      alignItems: 'center',
-    },
-    releaseTitle: {
-      fontSize: fontSize.sm,
+    playlistTitle: {
+      fontSize: fontSize.base,
       fontWeight: fontWeight.semibold,
       color: theme.text.primary,
       marginBottom: spacing.xs,
     },
-    releaseArtist: {
+    playlistFollowers: {
       fontSize: fontSize.xs,
-      color: theme.text.secondary,
+      color: theme.text.tertiary,
     },
-    genreCard: {
-      width: 120,
-      height: 80,
+    chartCard: {
+      width: 140,
+      marginRight: spacing.md,
+    },
+    chartImage: {
+      width: 140,
+      height: 140,
       borderRadius: borderRadius.md,
-      overflow: 'hidden',
-      position: 'relative',
+      marginBottom: spacing.sm,
+      backgroundColor: theme.card.background,
     },
-    genreImage: {
-      width: '100%',
-      height: '100%',
-    },
-    genreOverlay: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      backgroundColor: theme.background.overlay,
-      padding: spacing.sm,
-    },
-    genreTitle: {
+    chartTitle: {
       fontSize: fontSize.sm,
       fontWeight: fontWeight.semibold,
-      color: theme.text.inverse,
+      color: theme.text.primary,
+      textAlign: 'center',
+    },
+    artistCard: {
+      alignItems: 'center',
+      marginRight: spacing.lg,
+    },
+    artistImage: {
+      width: 120,
+      height: 120,
+      borderRadius: borderRadius.full,
+      marginBottom: spacing.sm,
+      borderWidth: 3,
+      borderColor: theme.accent.primary + '30',
+      backgroundColor: theme.card.background,
+    },
+    artistName: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.semibold,
+      color: theme.text.primary,
+      textAlign: 'center',
+      width: 120,
+    },
+    paddingBottom: {
+      height: 100,
     },
   });
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>{getGreeting()}</Text>
+            <Text style={styles.subtitle}>Loading your music...</Text>
+          </View>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size='large' color={theme.accent.primary} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Good morning</Text>
+          <Text style={styles.greeting}>{getGreeting()}</Text>
           <Text style={styles.subtitle}>Discover your favorite music</Text>
         </View>
         <TouchableOpacity style={styles.notificationButton}>
@@ -206,77 +304,162 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Trending Songs */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Trending Songs</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See All</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.horizontalScroll}>
-            {trendingSongs.map((song) => (
-              <TouchableOpacity key={song.id} style={styles.trendingCard}>
-                <Image source={song.image} style={styles.trendingImage} />
-                <View style={styles.playOverlay}>
-                  <Ionicons name='play' size={iconSize.md} color={theme.text.inverse} />
-                </View>
-                <View style={styles.trendingInfo}>
-                  <Text style={styles.trendingTitle}>{song.title}</Text>
-                  <Text style={styles.trendingArtist}>{song.artist}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.accent.primary}
+            colors={[theme.accent.primary]}
+          />
+        }
+      >
         {/* New Releases */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>New Releases</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See All</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.horizontalScroll}>
-            {newReleases.map((release) => (
-              <TouchableOpacity key={release.id} style={styles.releaseCard}>
-                <Image source={release.image} style={styles.releaseImage} />
-                <View style={styles.playOverlay}>
-                  <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
-                </View>
-                <View style={styles.releaseInfo}>
-                  <Text style={styles.releaseTitle}>{release.title}</Text>
-                  <Text style={styles.releaseArtist}>{release.artist}</Text>
-                </View>
+        {newReleases.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>New Releases</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>See All</Text>
               </TouchableOpacity>
-            ))}
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContainer}
+            >
+              {newReleases.map((release) => (
+                <TouchableOpacity key={release.id} style={styles.releaseCard}>
+                  <View style={styles.releaseImageContainer}>
+                    <Image
+                      source={{ uri: getImageUrl(release.image) }}
+                      style={styles.releaseImage}
+                      resizeMode='cover'
+                    />
+                    <TouchableOpacity style={styles.playButton}>
+                      <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.releaseTitle} numberOfLines={1}>
+                    {release.title}
+                  </Text>
+                  {release.subtitle && (
+                    <Text style={styles.releaseSubtitle} numberOfLines={1}>
+                      {release.subtitle}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
-        </View>
+        )}
 
-        {/* Mood & Genres */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mood & Genres</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See All</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.horizontalScroll}>
-            {moodGenres.map((genre) => (
-              <TouchableOpacity key={genre.id} style={styles.genreCard}>
-                <Image source={genre.image} style={styles.genreImage} />
-                <View style={styles.genreOverlay}>
-                  <Text style={styles.genreTitle}>{genre.title}</Text>
-                </View>
+        {/* Top Playlists */}
+        {playlists.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Top Playlists</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>See All</Text>
               </TouchableOpacity>
-            ))}
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContainer}
+            >
+              {playlists.map((playlist) => (
+                <TouchableOpacity key={playlist.id} style={styles.playlistCard}>
+                  <View style={styles.releaseImageContainer}>
+                    <Image
+                      source={{ uri: getImageUrl(playlist.image) }}
+                      style={styles.playlistImage}
+                      resizeMode='cover'
+                    />
+                    <TouchableOpacity style={styles.playButton}>
+                      <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.playlistTitle} numberOfLines={2}>
+                    {playlist.title}
+                  </Text>
+                  {playlist.followers && (
+                    <Text style={styles.playlistFollowers}>{playlist.followers}</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
-        </View>
+        )}
+
+        {/* Top Charts */}
+        {charts.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Top Charts</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>See All</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContainer}
+            >
+              {charts.map((chart) => (
+                <TouchableOpacity key={chart.id} style={styles.chartCard}>
+                  <View style={styles.releaseImageContainer}>
+                    <Image
+                      source={{ uri: getImageUrl(chart.image) }}
+                      style={styles.chartImage}
+                      resizeMode='cover'
+                    />
+                    <TouchableOpacity style={styles.playButton}>
+                      <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.chartTitle} numberOfLines={2}>
+                    {chart.title}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Top Artists */}
+        {artists.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Top Artists</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>See All</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContainer}
+            >
+              {artists.map((artist) => (
+                <TouchableOpacity key={artist.id} style={styles.artistCard}>
+                  <Image
+                    source={{ uri: getImageUrl(artist.image) }}
+                    style={styles.artistImage}
+                    resizeMode='cover'
+                  />
+                  <Text style={styles.artistName} numberOfLines={1}>
+                    {artist.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        <View style={styles.paddingBottom} />
       </ScrollView>
     </View>
   );
