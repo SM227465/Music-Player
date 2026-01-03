@@ -8,7 +8,7 @@ import ProfileScreen from '@/components/ui/ProfileScreen';
 import SearchScreen from '@/components/ui/SearchScreen';
 import SignInScreen from '@/components/ui/SignInScreen';
 import WelcomeScreen from '@/components/ui/WelcomeScreen';
-import { useCustomAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useAudioPlayerBackground } from '@/hooks/useAudioPlayerBackground';
 import { Song } from '@/types/searchSong';
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
@@ -30,17 +30,15 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
 function MainApp() {
   const [activeTab, setActiveTab] = useState('home');
   const [showNowPlaying, setShowNowPlaying] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState<Song | null>(null);
-  const audioPlayer = useCustomAudioPlayer();
+  const audioPlayer = useAudioPlayerBackground();
 
-  const handleSongPress = (song: Song) => {
-    setCurrentTrack(song);
+  const handleSongPress = async (song: Song) => {
+    await audioPlayer.playAudio(song);
     setShowNowPlaying(true);
   };
 
   const handleCloseMiniPlayer = async () => {
     await audioPlayer.stopAndClear();
-    setCurrentTrack(null);
     setShowNowPlaying(false);
   };
 
@@ -64,9 +62,9 @@ function MainApp() {
       <View style={styles.container}>
         {renderScreen()}
 
-        {currentTrack && (
+        {audioPlayer.currentTrack && (
           <MiniPlayer
-            currentTrack={currentTrack}
+            currentTrack={audioPlayer.currentTrack}
             onExpand={() => setShowNowPlaying(true)}
             isVisible={!showNowPlaying}
             audioPlayer={audioPlayer}
@@ -74,9 +72,9 @@ function MainApp() {
           />
         )}
 
-        {currentTrack && (
+        {audioPlayer.currentTrack && (
           <NowPlayingScreen
-            currentTrack={currentTrack}
+            currentTrack={audioPlayer.currentTrack}
             onMinimize={() => setShowNowPlaying(false)}
             isVisible={showNowPlaying}
             audioPlayer={audioPlayer}

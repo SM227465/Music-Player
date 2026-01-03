@@ -1,11 +1,11 @@
 // components/ui/MiniPlayer.tsx - Enhanced version
-import { useCustomAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useAudioPlayerBackground } from '@/hooks/useAudioPlayerBackground';
 import { Song } from '@/types/searchSong';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-type AudioPlayerType = ReturnType<typeof useCustomAudioPlayer>;
+type AudioPlayerType = ReturnType<typeof useAudioPlayerBackground>;
 
 interface MiniPlayerProps {
   currentTrack: Song;

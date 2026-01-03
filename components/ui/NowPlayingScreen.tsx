@@ -1,5 +1,5 @@
 // components/ui/NowPlayingScreen.tsx
-import { useCustomAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useAudioPlayerBackground } from '@/hooks/useAudioPlayerBackground';
 import { useFavorites, useHistory, useQueue } from '@/hooks/useStorage';
 import { Song } from '@/types/searchSong';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QueueModal from './QueueModal';
 import LyricsModal from './LyricsModal';
 
-type AudioPlayerType = ReturnType<typeof useCustomAudioPlayer>;
+type AudioPlayerType = ReturnType<typeof useAudioPlayerBackground>;
 
 const { height } = Dimensions.get('window');
 
@@ -61,14 +61,12 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
   }, [isVisible]);
 
   // Auto-play when song details are loaded
+  // Note: playAudio is now called from the parent component (handleSongPress)
+  // so we don't need to call it here anymore
   useEffect(() => {
-    if (currentTrack.downloadUrl.length && isVisible) {
-      const audioUrl = getHighestQualityAudioUrl(currentTrack.downloadUrl);
-      if (audioUrl) {
-        playAudio(audioUrl);
-      }
-    }
-  }, [currentTrack, isVisible, playAudio]);
+    // This effect is no longer needed as playAudio is called from parent
+    // when the song is first selected
+  }, [currentTrack, isVisible]);
 
   const getHighestQualityAudioUrl = useCallback((downloadUrls: any[]) => {
     if (!downloadUrls || downloadUrls.length === 0) return null;
@@ -399,7 +397,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 12,
   },
   minimizeButton: {
     padding: 8,
@@ -414,7 +412,7 @@ const styles = StyleSheet.create({
   },
   artworkContainer: {
     alignItems: 'center',
-    marginVertical: 40,
+    marginVertical: 20,
   },
   artworkShadow: {
     shadowColor: '#000',
@@ -425,8 +423,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   artwork: {
-    width: 300,
-    height: 300,
+    width: 280,
+    height: 280,
     borderRadius: 16,
     backgroundColor: '#2d7a5f',
   },
@@ -443,7 +441,7 @@ const styles = StyleSheet.create({
   },
   trackInfo: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 24,
   },
   trackTitle: {
     fontSize: 24,
@@ -468,7 +466,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   progressContainer: {
-    marginBottom: 40,
+    marginBottom: 24,
   },
   progressSlider: {
     width: '100%',
@@ -487,7 +485,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 24,
     paddingHorizontal: 20,
   },
   controlButton: {
