@@ -1,6 +1,7 @@
 // hooks/useJioSaavnQueries.ts
 import { useQuery } from '@tanstack/react-query';
 import { jioSaavnService } from '@/services/jiosaavn.service';
+import { artistService } from '@/services/artist.service';
 
 export const useNewReleases = () => {
   return useQuery({
@@ -48,6 +49,15 @@ export const useAlbumDetails = (albumUrl: string, enabled: boolean = true) => {
     queryKey: ['albumDetails', albumUrl],
     queryFn: () => jioSaavnService.getAlbumDetails(albumUrl),
     enabled: enabled && !!albumUrl,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+  });
+};
+
+export const useArtistDetails = (artistId: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['artistDetails', artistId],
+    queryFn: () => artistService.getArtistDetails(artistId),
+    enabled: enabled && !!artistId,
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 };

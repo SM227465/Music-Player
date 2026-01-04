@@ -19,11 +19,12 @@ import { Song } from '@/types/searchSong';
 import { HomeScreenSkeleton } from './SkeletonLoader';
 import { decodeHtmlEntities } from '../../utils/htmlDecode';
 
-type ViewMode = 'home' | 'playlist';
+type ViewMode = 'home' | 'playlist' | 'artist';
 
 interface ViewState {
   mode: ViewMode;
   playlistUrl?: string;
+  artistId?: string;
 }
 
 interface HomeScreenProps {
@@ -82,6 +83,10 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
     setViewState({ mode: 'playlist', playlistUrl });
   };
 
+  const handleArtistPress = (artistId: string) => {
+    setViewState({ mode: 'artist', artistId });
+  };
+
   const handleNewReleasePress = (songId: string) => {
     setSelectedSongId(songId);
   };
@@ -92,11 +97,26 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
 
   // Import components dynamically
   const PlaylistDetailScreen = require('./PlaylistDetailScreen').default;
+  const ArtistDetailScreen = require('./ArtistDetailScreen').default;
 
   if (viewState.mode === 'playlist') {
     return (
       <PlaylistDetailScreen
         playlistUrl={viewState.playlistUrl!}
+        onBack={handleBackToHome}
+        onSongPress={onSongPress}
+        onPlayQueue={onPlayQueue}
+        currentTrack={currentTrack}
+        isPlaying={isPlaying}
+        onTogglePlayPause={onTogglePlayPause}
+      />
+    );
+  }
+
+  if (viewState.mode === 'artist') {
+    return (
+      <ArtistDetailScreen
+        artistId={viewState.artistId!}
         onBack={handleBackToHome}
         onSongPress={onSongPress}
         onPlayQueue={onPlayQueue}
@@ -480,7 +500,7 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
                 <TouchableOpacity
                   key={artist.id}
                   style={[styles.artistCard, index === artists.slice(0, 10).length - 1 && { marginRight: spacing.xl }]}
-                  onPress={() => handlePlaylistPress(artist.url)}
+                  onPress={() => handleArtistPress(artist.id)}
                   activeOpacity={0.7}
                 >
                   <Image
