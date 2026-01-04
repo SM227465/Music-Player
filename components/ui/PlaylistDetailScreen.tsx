@@ -2,7 +2,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   StyleSheet,
@@ -13,16 +12,21 @@ import {
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 import { Song } from '@/types/searchSong';
 import { usePlaylistDetails } from '@/hooks/useJioSaavnQueries';
+import { PlaylistDetailSkeleton } from './SkeletonLoader';
+import NowPlayingIndicator from './NowPlayingIndicator';
 
 interface PlaylistDetailScreenProps {
   playlistUrl: string;
   onBack: () => void;
   onSongPress?: (song: Song) => void;
   onPlayQueue?: (songs: Song[], startIndex: number) => void;
+  currentTrack?: Song | null;
+  isPlaying?: boolean;
+  onTogglePlayPause?: () => void;
 }
 
 
-export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress, onPlayQueue }: PlaylistDetailScreenProps) {
+export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress, onPlayQueue, currentTrack, isPlaying, onTogglePlayPause }: PlaylistDetailScreenProps) {
   const theme = useTheme();
   const { data: playlist, isLoading: loading, isError: error, refetch } = usePlaylistDetails(playlistUrl);
 
@@ -59,32 +63,56 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
     }
   };
 
-  const renderSongItem = ({ item, index }: { item: Song; index: number }) => (
-    <TouchableOpacity
-      style={styles.songItem}
-      onPress={() => handleSongPress(item, index)}
-      activeOpacity={0.7}
-    >
-      <Text style={styles.songIndex}>{(index + 1).toString().padStart(2, '0')}</Text>
-      <Image
-        source={{ uri: getImageUrl(item.image, '150x150') }}
-        style={styles.songImage}
-        resizeMode='cover'
-      />
-      <View style={styles.songInfo}>
-        <Text style={styles.songTitle} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.songArtist} numberOfLines={1}>
-          {item.artists.primary.map((artist) => artist.name).join(', ')}
-        </Text>
-      </View>
-      <Text style={styles.songDuration}>{formatDuration(item.duration)}</Text>
-      <TouchableOpacity style={styles.songPlayButton} onPress={() => handleSongPress(item, index)}>
-        <Ionicons name='play' size={iconSize.sm} color={theme.accent.primary} />
+  const renderSongItem = ({ item, index }: { item: Song; index: number }) => {
+    const isCurrentTrack = currentTrack?.id === item.id;
+
+    return (
+      <TouchableOpacity
+        style={[styles.songItem, isCurrentTrack && styles.songItemPlaying]}
+        onPress={() => handleSongPress(item, index)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.songIndexContainer}>
+          {isCurrentTrack ? (
+            <NowPlayingIndicator isPlaying={isPlaying ?? false} />
+          ) : (
+            <Text style={styles.songIndex}>{(index + 1).toString().padStart(2, '0')}</Text>
+          )}
+        </View>
+        <Image
+          source={{ uri: getImageUrl(item.image, '150x150') }}
+          style={styles.songImage}
+          resizeMode='cover'
+        />
+        <View style={styles.songInfo}>
+          <Text style={[styles.songTitle, isCurrentTrack && styles.songTitlePlaying]} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text style={styles.songArtist} numberOfLines={1}>
+            {item.artists.primary.map((artist) => artist.name).join(', ')}
+          </Text>
+        </View>
+        <Text style={styles.songDuration}>{formatDuration(item.duration)}</Text>
+        <TouchableOpacity
+          style={styles.songPlayButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            if (isCurrentTrack && onTogglePlayPause) {
+              onTogglePlayPause();
+            } else {
+              handleSongPress(item, index);
+            }
+          }}
+        >
+          <Ionicons
+            name={isCurrentTrack ? (isPlaying ? 'pause' : 'play') : 'play'}
+            size={iconSize.sm}
+            color={theme.accent.primary}
+          />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -163,11 +191,6 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
       fontWeight: fontWeight.bold,
       marginLeft: spacing.sm,
     },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
     errorContainer: {
       flex: 1,
       justifyContent: 'center',
@@ -220,11 +243,19 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
       borderWidth: 1,
       borderColor: theme.border.primary,
     },
+    songItemPlaying: {
+      backgroundColor: theme.accent.primary + '15',
+      borderColor: theme.accent.primary + '40',
+    },
+    songIndexContainer: {
+      width: 30,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     songIndex: {
       fontSize: fontSize.sm,
       fontWeight: fontWeight.semibold,
       color: theme.text.tertiary,
-      width: 30,
     },
     songImage: {
       width: 45,
@@ -242,6 +273,9 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
       fontWeight: fontWeight.semibold,
       color: theme.text.primary,
       marginBottom: 2,
+    },
+    songTitlePlaying: {
+      color: theme.accent.primary,
     },
     songArtist: {
       fontSize: fontSize.xs,
@@ -266,18 +300,7 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
   });
 
   if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <Ionicons name='arrow-back' size={iconSize.md} color={theme.text.primary} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color={theme.accent.primary} />
-        </View>
-      </View>
-    );
+    return <PlaylistDetailSkeleton />;
   }
 
   if (error || !playlist) {

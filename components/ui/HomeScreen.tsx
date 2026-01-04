@@ -2,7 +2,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Image,
   RefreshControl,
   ScrollView,
@@ -14,6 +13,7 @@ import {
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 import { useHomeData } from '@/hooks/useJioSaavnQueries';
 import { Song } from '@/types/searchSong';
+import { HomeScreenSkeleton } from './SkeletonLoader';
 
 type ViewMode = 'home' | 'playlist';
 
@@ -25,9 +25,12 @@ interface ViewState {
 interface HomeScreenProps {
   onSongPress?: (song: Song) => void;
   onPlayQueue?: (songs: Song[], startIndex: number) => void;
+  currentTrack?: Song | null;
+  isPlaying?: boolean;
+  onTogglePlayPause?: () => void;
 }
 
-export default function HomeScreen({ onSongPress, onPlayQueue }: HomeScreenProps) {
+export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isPlaying, onTogglePlayPause }: HomeScreenProps) {
   const theme = useTheme();
   const [viewState, setViewState] = useState<ViewState>({ mode: 'home' });
 
@@ -67,6 +70,9 @@ export default function HomeScreen({ onSongPress, onPlayQueue }: HomeScreenProps
         onBack={handleBackToHome}
         onSongPress={onSongPress}
         onPlayQueue={onPlayQueue}
+        currentTrack={currentTrack}
+        isPlaying={isPlaying}
+        onTogglePlayPause={onTogglePlayPause}
       />
     );
   }
@@ -110,12 +116,6 @@ export default function HomeScreen({ onSongPress, onPlayQueue }: HomeScreenProps
     },
     content: {
       flex: 1,
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingTop: 100,
     },
     section: {
       marginBottom: spacing.xxxl,
@@ -239,19 +239,7 @@ export default function HomeScreen({ onSongPress, onPlayQueue }: HomeScreenProps
   });
 
   if (isLoading) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>{getGreeting()}</Text>
-            <Text style={styles.subtitle}>Loading your music...</Text>
-          </View>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color={theme.accent.primary} />
-        </View>
-      </View>
-    );
+    return <HomeScreenSkeleton />;
   }
 
   return (

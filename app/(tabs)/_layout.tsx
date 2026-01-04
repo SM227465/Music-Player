@@ -52,7 +52,15 @@ function MainApp() {
   const renderScreen = () => {
     switch (activeTab) {
       case 'home':
-        return <HomeScreen onSongPress={handleSongPress} onPlayQueue={handlePlayQueue} />;
+        return (
+          <HomeScreen
+            onSongPress={handleSongPress}
+            onPlayQueue={handlePlayQueue}
+            currentTrack={audioPlayer.currentTrack}
+            isPlaying={audioPlayer.isPlaying}
+            onTogglePlayPause={audioPlayer.togglePlayPause}
+          />
+        );
       case 'search':
         return <SearchScreen onSongPress={handleSongPress} />;
       case 'library':
@@ -60,7 +68,15 @@ function MainApp() {
       case 'profile':
         return <ProfileScreen />;
       default:
-        return <HomeScreen onSongPress={handleSongPress} onPlayQueue={handlePlayQueue} />;
+        return (
+          <HomeScreen
+            onSongPress={handleSongPress}
+            onPlayQueue={handlePlayQueue}
+            currentTrack={audioPlayer.currentTrack}
+            isPlaying={audioPlayer.isPlaying}
+            onTogglePlayPause={audioPlayer.togglePlayPause}
+          />
+        );
     }
   };
 
