@@ -11,6 +11,7 @@ import { ActivityIndicator, Animated, Dimensions, Image, StyleSheet, Text, Touch
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QueueModal from './QueueModal';
 import LyricsModal from './LyricsModal';
+import { decodeHtmlEntities } from '../../utils/htmlDecode';
 
 type AudioPlayerType = ReturnType<typeof useAudioPlayerBackground>;
 
@@ -457,7 +458,7 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
         <View style={styles.trackInfo}>
           <View style={styles.trackTitleRow}>
             <Text style={styles.trackTitle} numberOfLines={2}>
-              {currentTrack.name}
+              {decodeHtmlEntities(currentTrack.name)}
             </Text>
             <TouchableOpacity style={styles.likeButton} onPress={handleLikePress} activeOpacity={0.7}>
               <Ionicons
@@ -468,10 +469,10 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
             </TouchableOpacity>
           </View>
           <Text style={styles.trackArtist} numberOfLines={1}>
-            {currentTrack.artists?.primary?.map((a) => a.name).join(', ')}
+            {decodeHtmlEntities(currentTrack.artists?.primary?.map((a) => a.name).join(', '))}
           </Text>
           <Text style={styles.trackAlbum} numberOfLines={1}>
-            {currentTrack.album.name}
+            {decodeHtmlEntities(currentTrack.album.name)}
           </Text>
         </View>
 
@@ -610,8 +611,8 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
         visible={showLyricsModal}
         onClose={() => setShowLyricsModal(false)}
         songId={currentTrack.id}
-        songName={currentTrack.name}
-        artistName={currentTrack.artists?.primary?.map((a) => a.name).join(', ') || ''}
+        songName={decodeHtmlEntities(currentTrack.name)}
+        artistName={decodeHtmlEntities(currentTrack.artists?.primary?.map((a) => a.name).join(', ') || '')}
         isPlaying={isPlaying}
         currentTime={position}
       />

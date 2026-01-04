@@ -14,6 +14,7 @@ import { Song } from '@/types/searchSong';
 import { usePlaylistDetails } from '@/hooks/useJioSaavnQueries';
 import { PlaylistDetailSkeleton } from './SkeletonLoader';
 import NowPlayingIndicator from './NowPlayingIndicator';
+import { decodeHtmlEntities } from '../../utils/htmlDecode';
 
 interface PlaylistDetailScreenProps {
   playlistUrl: string;
@@ -86,10 +87,10 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
         />
         <View style={styles.songInfo}>
           <Text style={[styles.songTitle, isCurrentTrack && styles.songTitlePlaying]} numberOfLines={1}>
-            {item.name}
+            {decodeHtmlEntities(item.name)}
           </Text>
           <Text style={styles.songArtist} numberOfLines={1}>
-            {item.artists.primary.map((artist) => artist.name).join(', ')}
+            {decodeHtmlEntities(item.artists.primary.map((artist) => artist.name).join(', '))}
           </Text>
         </View>
         <Text style={styles.songDuration}>{formatDuration(item.duration)}</Text>
@@ -335,9 +336,9 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
             style={styles.playlistImage}
             resizeMode='cover'
           />
-          <Text style={styles.playlistName}>{playlist.name}</Text>
+          <Text style={styles.playlistName}>{decodeHtmlEntities(playlist.name)}</Text>
           {playlist.description && (
-            <Text style={styles.playlistDescription}>{playlist.description.replace(/&amp;/g, '&')}</Text>
+            <Text style={styles.playlistDescription}>{decodeHtmlEntities(playlist.description)}</Text>
           )}
           <Text style={styles.playlistMeta}>{playlist.songCount} songs</Text>
 

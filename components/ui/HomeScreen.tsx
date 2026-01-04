@@ -1,7 +1,9 @@
 // components/ui/HomeScreen.tsx
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   RefreshControl,
   ScrollView,
@@ -12,8 +14,10 @@ import {
 } from 'react-native';
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 import { useHomeData } from '@/hooks/useJioSaavnQueries';
+import { useSongDetails } from '@/hooks/useApiQueries';
 import { Song } from '@/types/searchSong';
 import { HomeScreenSkeleton } from './SkeletonLoader';
+import { decodeHtmlEntities } from '../../utils/htmlDecode';
 
 type ViewMode = 'home' | 'playlist';
 
@@ -33,9 +37,31 @@ interface HomeScreenProps {
 export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isPlaying, onTogglePlayPause }: HomeScreenProps) {
   const theme = useTheme();
   const [viewState, setViewState] = useState<ViewState>({ mode: 'home' });
+  const [selectedSongId, setSelectedSongId] = useState<string>('');
 
   // Use React Query hooks
   const { newReleases, playlists, charts, artists, isLoading, refetch } = useHomeData();
+  const { data: songDetails, isSuccess, isError, isLoading: isFetchingSong } = useSongDetails(selectedSongId);
+
+  // When song details are fetched, play the song
+  useEffect(() => {
+    if (isSuccess && songDetails && onSongPress && selectedSongId) {
+      const song: Song = songDetails.data?.[0] || songDetails.data;
+      onSongPress(song);
+      setSelectedSongId(''); // Reset after playing
+    }
+  }, [isSuccess, songDetails, onSongPress, selectedSongId]);
+
+  // Handle API errors
+  useEffect(() => {
+    if (isError && selectedSongId) {
+      Alert.alert(
+        'Error',
+        'Failed to load song. Please try again.',
+        [{ text: 'OK', onPress: () => setSelectedSongId('') }]
+      );
+    }
+  }, [isError, selectedSongId]);
 
   const handleRefresh = () => {
     refetch();
@@ -54,6 +80,10 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
 
   const handlePlaylistPress = (playlistUrl: string) => {
     setViewState({ mode: 'playlist', playlistUrl });
+  };
+
+  const handleNewReleasePress = (songId: string) => {
+    setSelectedSongId(songId);
   };
 
   const handleBackToHome = () => {
@@ -236,6 +266,34 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
     paddingBottom: {
       height: 100,
     },
+    loadingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    loadingContent: {
+      backgroundColor: theme.card.background,
+      padding: spacing.xxl,
+      borderRadius: borderRadius.lg,
+      alignItems: 'center',
+      shadowColor: theme.shadow.color,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.shadow.opacity,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    loadingText: {
+      marginTop: spacing.md,
+      fontSize: fontSize.base,
+      color: theme.text.primary,
+      fontWeight: fontWeight.semibold,
+    },
   });
 
   if (isLoading) {
@@ -286,6 +344,8 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
                     styles.releaseCard,
                     index === newReleases.slice(0, 10).length - 1 && { marginRight: spacing.xl },
                   ]}
+                  onPress={() => handleNewReleasePress(release.id)}
+                  activeOpacity={0.7}
                 >
                   <View style={styles.releaseImageContainer}>
                     <Image
@@ -293,16 +353,22 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
                       style={styles.releaseImage}
                       resizeMode='cover'
                     />
-                    <TouchableOpacity style={styles.playButton}>
+                    <TouchableOpacity
+                      style={styles.playButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleNewReleasePress(release.id);
+                      }}
+                    >
                       <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
                     </TouchableOpacity>
                   </View>
                   <Text style={styles.releaseTitle} numberOfLines={1}>
-                    {release.title}
+                    {decodeHtmlEntities(release.title)}
                   </Text>
                   {release.subtitle && (
                     <Text style={styles.releaseSubtitle} numberOfLines={1}>
-                      {release.subtitle}
+                      {decodeHtmlEntities(release.subtitle)}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -343,7 +409,7 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
                     </TouchableOpacity>
                   </View>
                   <Text style={styles.playlistTitle} numberOfLines={2}>
-                    {playlist.title}
+                    {decodeHtmlEntities(playlist.title)}
                   </Text>
                   {playlist.followers && (
                     <Text style={styles.playlistFollowers}>{playlist.followers}</Text>
@@ -370,6 +436,8 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
                 <TouchableOpacity
                   key={chart.id}
                   style={[styles.chartCard, index === charts.slice(0, 10).length - 1 && { marginRight: spacing.xl }]}
+                  onPress={() => handlePlaylistPress(chart.url)}
+                  activeOpacity={0.7}
                 >
                   <View style={styles.releaseImageContainer}>
                     <Image
@@ -377,12 +445,18 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
                       style={styles.chartImage}
                       resizeMode='cover'
                     />
-                    <TouchableOpacity style={styles.playButton}>
+                    <TouchableOpacity
+                      style={styles.playButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handlePlaylistPress(chart.url);
+                      }}
+                    >
                       <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
                     </TouchableOpacity>
                   </View>
                   <Text style={styles.chartTitle} numberOfLines={2}>
-                    {chart.title}
+                    {decodeHtmlEntities(chart.title)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -406,6 +480,8 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
                 <TouchableOpacity
                   key={artist.id}
                   style={[styles.artistCard, index === artists.slice(0, 10).length - 1 && { marginRight: spacing.xl }]}
+                  onPress={() => handlePlaylistPress(artist.url)}
+                  activeOpacity={0.7}
                 >
                   <Image
                     source={{ uri: getImageUrl(artist.image) }}
@@ -413,7 +489,7 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
                     resizeMode='cover'
                   />
                   <Text style={styles.artistName} numberOfLines={1}>
-                    {artist.name}
+                    {decodeHtmlEntities(artist.name)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -423,6 +499,16 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
 
         <View style={styles.paddingBottom} />
       </ScrollView>
+
+      {/* Loading Overlay */}
+      {isFetchingSong && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContent}>
+            <ActivityIndicator size="large" color={theme.accent.primary} />
+            <Text style={styles.loadingText}>Loading song...</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
