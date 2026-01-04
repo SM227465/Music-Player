@@ -15,21 +15,10 @@ import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from 
 import { useHomeData } from '@/hooks/useJioSaavnQueries';
 import { Song } from '@/types/searchSong';
 
-interface ListViewItem {
-  id: string;
-  title: string;
-  url: string;
-  image: string;
-  subtitle?: string;
-  followers?: string;
-}
-
-type ViewMode = 'home' | 'list' | 'playlist';
+type ViewMode = 'home' | 'playlist';
 
 interface ViewState {
   mode: ViewMode;
-  title?: string;
-  apiUrl?: string;
   playlistUrl?: string;
 }
 
@@ -60,10 +49,6 @@ export default function HomeScreen({ onSongPress, onPlayQueue }: HomeScreenProps
     return url.replace('150x150', quality);
   };
 
-  const handleSeeAll = (title: string, apiUrl: string) => {
-    setViewState({ mode: 'list', title, apiUrl });
-  };
-
   const handlePlaylistPress = (playlistUrl: string) => {
     setViewState({ mode: 'playlist', playlistUrl });
   };
@@ -73,19 +58,7 @@ export default function HomeScreen({ onSongPress, onPlayQueue }: HomeScreenProps
   };
 
   // Import components dynamically
-  const ListViewScreen = require('./ListViewScreen').default;
   const PlaylistDetailScreen = require('./PlaylistDetailScreen').default;
-
-  if (viewState.mode === 'list') {
-    return (
-      <ListViewScreen
-        title={viewState.title!}
-        apiUrl={viewState.apiUrl!}
-        onBack={handleBackToHome}
-        onItemPress={(item: ListViewItem) => handlePlaylistPress(item.url)}
-      />
-    );
-  }
 
   if (viewState.mode === 'playlist') {
     return (
@@ -158,11 +131,6 @@ export default function HomeScreen({ onSongPress, onPlayQueue }: HomeScreenProps
       fontSize: fontSize.xl,
       fontWeight: fontWeight.bold,
       color: theme.text.primary,
-    },
-    seeAllText: {
-      fontSize: fontSize.sm,
-      color: theme.accent.primary,
-      fontWeight: fontWeight.semibold,
     },
     scrollContainer: {
       paddingLeft: spacing.xl,
@@ -316,13 +284,6 @@ export default function HomeScreen({ onSongPress, onPlayQueue }: HomeScreenProps
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>New Releases</Text>
-              <TouchableOpacity
-                onPress={() =>
-                  handleSeeAll('New Releases', 'https://jiosaavn-scraper.onrender.com/api/jiosaavn/new-releases')
-                }
-              >
-                <Text style={styles.seeAllText}>See All</Text>
-              </TouchableOpacity>
             </View>
             <ScrollView
               horizontal
@@ -367,13 +328,6 @@ export default function HomeScreen({ onSongPress, onPlayQueue }: HomeScreenProps
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Top Playlists</Text>
-              <TouchableOpacity
-                onPress={() =>
-                  handleSeeAll('Top Playlists', 'https://jiosaavn-scraper.onrender.com/api/jiosaavn/top-playlists')
-                }
-              >
-                <Text style={styles.seeAllText}>See All</Text>
-              </TouchableOpacity>
             </View>
             <ScrollView
               horizontal
@@ -417,13 +371,6 @@ export default function HomeScreen({ onSongPress, onPlayQueue }: HomeScreenProps
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Top Charts</Text>
-              <TouchableOpacity
-                onPress={() =>
-                  handleSeeAll('Top Charts', 'https://jiosaavn-scraper.onrender.com/api/jiosaavn/top-charts')
-                }
-              >
-                <Text style={styles.seeAllText}>See All</Text>
-              </TouchableOpacity>
             </View>
             <ScrollView
               horizontal
@@ -460,13 +407,6 @@ export default function HomeScreen({ onSongPress, onPlayQueue }: HomeScreenProps
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Top Artists</Text>
-              <TouchableOpacity
-                onPress={() =>
-                  handleSeeAll('Top Artists', 'https://jiosaavn-scraper.onrender.com/api/jiosaavn/top-artists')
-                }
-              >
-                <Text style={styles.seeAllText}>See All</Text>
-              </TouchableOpacity>
             </View>
             <ScrollView
               horizontal

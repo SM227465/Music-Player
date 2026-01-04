@@ -1,9 +1,9 @@
 // services/download.service.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+import { Paths, Directory, File } from 'expo-file-system';
 import { Song } from '@/types/searchSong';
 
-const DOWNLOADS_DIRECTORY = `${FileSystem.documentDirectory}downloads/`;
+const DOWNLOADS_DIRECTORY = new Directory(Paths.document, 'downloads');
 const DOWNLOADS_KEY = '@downloads';
 const MAX_STORAGE_MB = 500; // 500MB storage limit
 
@@ -16,11 +16,8 @@ export interface DownloadedSong extends Song {
 export const downloadService = {
   // Initialize downloads directory
   async initializeDownloads(): Promise<void> {
-    const dirInfo = await FileSystem.getInfoAsync(DOWNLOADS_DIRECTORY);
-    if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(DOWNLOADS_DIRECTORY, {
-        intermediates: true,
-      });
+    if (!DOWNLOADS_DIRECTORY.exists) {
+      DOWNLOADS_DIRECTORY.create();
     }
   },
 
@@ -66,34 +63,24 @@ export const downloadService = {
 
       const fileExtension = '.mp3';
       const fileName = `${song.id}${fileExtension}`;
-      const fileUri = `${DOWNLOADS_DIRECTORY}${fileName}`;
+      const file = new File(DOWNLOADS_DIRECTORY, fileName);
 
-      // Download the file
-      const downloadResumable = FileSystem.createDownloadResumable(
+      // Download the file using the new API
+      const downloadedFile = await File.downloadFileAsync(
         audioUrl,
-        fileUri,
-        {},
-        (downloadProgress) => {
-          const progress =
-            downloadProgress.totalBytesWritten /
-            downloadProgress.totalBytesExpectedToWrite;
-          onProgress?.(progress * 100);
+        DOWNLOADS_DIRECTORY,
+        {
+          idempotent: true, // Overwrite if exists
         }
       );
 
-      const result = await downloadResumable.downloadAsync();
-      if (!result) {
-        throw new Error('Download failed');
-      }
-
-      // Get file info
-      const fileInfo = await FileSystem.getInfoAsync(result.uri);
-      const fileSize = 'size' in fileInfo ? fileInfo.size || 0 : 0;
+      // Get file size
+      const fileSize = downloadedFile.size || 0;
 
       // Create downloaded song object
       const downloadedSong: DownloadedSong = {
         ...song,
-        localUri: result.uri,
+        localUri: downloadedFile.uri,
         downloadDate: new Date().toISOString(),
         fileSize,
       };
@@ -117,8 +104,11 @@ export const downloadService = {
       const song = downloads.find((s) => s.id === songId);
 
       if (song) {
-        // Delete file
-        await FileSystem.deleteAsync(song.localUri, { idempotent: true });
+        // Delete file using new API
+        const file = new File(song.localUri);
+        if (file.exists) {
+          file.delete();
+        }
 
         // Update AsyncStorage
         const updatedDownloads = downloads.filter((s) => s.id !== songId);
@@ -136,8 +126,10 @@ export const downloadService = {
   // Clear all downloads
   async clearAllDownloads(): Promise<void> {
     try {
-      // Delete directory
-      await FileSystem.deleteAsync(DOWNLOADS_DIRECTORY, { idempotent: true });
+      // Delete directory using new API
+      if (DOWNLOADS_DIRECTORY.exists) {
+        DOWNLOADS_DIRECTORY.delete();
+      }
 
       // Recreate directory
       await this.initializeDownloads();

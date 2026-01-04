@@ -52,23 +52,6 @@ export const useAlbumDetails = (albumUrl: string, enabled: boolean = true) => {
   });
 };
 
-// Generic hook for fetching list data from any endpoint
-export const useListData = (apiUrl: string, enabled: boolean = true) => {
-  return useQuery({
-    queryKey: ['listData', apiUrl],
-    queryFn: async () => {
-      const response = await fetch(apiUrl);
-      const data = await response.json();
-      if (data.success) {
-        return data.data;
-      }
-      throw new Error('Failed to fetch list data');
-    },
-    enabled: enabled && !!apiUrl,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-};
-
 // Hook for fetching all home data at once
 export const useHomeData = () => {
   const newReleases = useNewReleases();

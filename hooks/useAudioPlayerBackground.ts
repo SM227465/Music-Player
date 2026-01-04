@@ -18,6 +18,7 @@ export const useAudioPlayerBackground = () => {
   const isSeekingRef = useRef(false);
   const lastPositionRef = useRef(0);
   const positionUpdateThreshold = 0.1;
+  const hasPlayedNextRef = useRef(false);
 
   // Update state based on player status
   useEffect(() => {
@@ -46,26 +47,21 @@ export const useAudioPlayerBackground = () => {
         lastPositionRef.current = statusPosition;
       }
     }
-
-    // Auto-play next song when current song ends
-    if (status.isLoaded && !status.playing && statusPosition > 0 && statusDuration > 0) {
-      const isNearEnd = Math.abs(statusPosition - statusDuration) < 1;
-      if (isNearEnd && queue.length > 0 && currentIndex < queue.length - 1) {
-        playNext();
-      }
-    }
-  }, [status.isLoaded, status.playing, status.duration, status.currentTime, isPlaying, duration, queue.length, currentIndex]);
+  }, [status.isLoaded, status.playing, status.duration, status.currentTime, isPlaying, duration]);
 
   // Play a specific song from the queue by index
-  const playSongAtIndex = useCallback(async (index: number) => {
-    if (index < 0 || index >= queue.length) {
-      console.error('Invalid queue index:', index);
+  const playSongAtIndex = useCallback(async (index: number, queueToUse?: Song[]) => {
+    const currentQueue = queueToUse || queue;
+
+    if (index < 0 || index >= currentQueue.length) {
+      console.error('Invalid queue index:', index, 'Queue length:', currentQueue.length);
       return;
     }
 
-    const song = queue[index];
+    const song = currentQueue[index];
     try {
       setIsLoading(true);
+      hasPlayedNextRef.current = false; // Reset flag when manually changing songs
 
       // Get the best quality audio URL
       const audioUrl = song.downloadUrl?.find(u => u.quality === '320kbps')?.url ||
@@ -78,7 +74,7 @@ export const useAudioPlayerBackground = () => {
         return;
       }
 
-      console.log('Playing:', song.name, 'from URL:', audioUrl);
+      console.log('Playing:', song.name, 'at index:', index, 'from URL:', audioUrl);
 
       // Replace the current track
       player.replace(audioUrl);
@@ -150,8 +146,10 @@ export const useAudioPlayerBackground = () => {
       return;
     }
 
+    console.log('Setting up queue with', songs.length, 'songs, starting at index', startIndex);
     setQueue(songs);
-    await playSongAtIndex(startIndex);
+    // Pass the songs array directly to avoid state update timing issues
+    await playSongAtIndex(startIndex, songs);
   }, [playSongAtIndex]);
 
   // Play next song in queue
@@ -160,6 +158,23 @@ export const useAudioPlayerBackground = () => {
       await playSongAtIndex(currentIndex + 1);
     }
   }, [currentIndex, queue.length, playSongAtIndex]);
+
+  // Auto-play next song when current song ends
+  useEffect(() => {
+    const statusPosition = status.currentTime || 0;
+    const statusDuration = status.duration || 0;
+
+    if (status.isLoaded && !status.playing && statusPosition > 0 && statusDuration > 0) {
+      const isNearEnd = Math.abs(statusPosition - statusDuration) < 1;
+
+      // Only auto-play if we haven't already played next for this song
+      if (isNearEnd && queue.length > 0 && currentIndex < queue.length - 1 && !hasPlayedNextRef.current) {
+        console.log('Auto-playing next song in queue:', currentIndex + 1);
+        hasPlayedNextRef.current = true; // Prevent multiple triggers
+        playNext();
+      }
+    }
+  }, [status.isLoaded, status.playing, status.currentTime, status.duration, queue.length, currentIndex, playNext]);
 
   // Play previous song in queue
   const playPrevious = useCallback(async () => {
@@ -305,6 +320,7 @@ export const useAudioPlayerBackground = () => {
     currentIndex,
     playAudio,
     playQueue,
+    playSongAtIndex,
     playNext,
     playPrevious,
     addToQueue,

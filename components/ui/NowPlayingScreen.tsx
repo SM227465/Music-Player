@@ -40,6 +40,7 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
   const {
     getProgress,
     playAudio,
+    playSongAtIndex,
     duration,
     seekTo,
     togglePlayPause,
@@ -158,13 +159,11 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
     }
   }, [hasPrevious, playPrevious, addToHistory, currentTrack]);
 
-  const handleQueueSongPress = useCallback((song: Song, index: number) => {
-    const audioUrl = getHighestQualityAudioUrl(song.downloadUrl);
-    if (audioUrl) {
-      playAudio(audioUrl);
-      setShowQueueModal(false);
-    }
-  }, [playAudio]);
+  const handleQueueSongPress = useCallback(async (song: Song, index: number) => {
+    // Play the song at the specified index in the queue
+    await playSongAtIndex(index);
+    setShowQueueModal(false);
+  }, [playSongAtIndex]);
 
   const handleRemoveFromQueue = useCallback(async (index: number) => {
     await removeFromQueue(index);
@@ -600,7 +599,7 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
         visible={showQueueModal}
         onClose={() => setShowQueueModal(false)}
         queue={queue}
-        currentIndex={0}
+        currentIndex={currentIndex}
         onSongPress={handleQueueSongPress}
         onRemoveSong={handleRemoveFromQueue}
         onClearQueue={handleClearQueue}
