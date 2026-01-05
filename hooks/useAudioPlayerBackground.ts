@@ -1,8 +1,7 @@
 // hooks/useAudioPlayerBackground.ts
 import { Song } from '@/types/searchSong';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import MediaControls from '../modules/expo-media-controls/src/index';
 
 export const useAudioPlayerBackground = () => {
   const player = useAudioPlayer();
@@ -18,8 +17,30 @@ export const useAudioPlayerBackground = () => {
 
   const isSeekingRef = useRef(false);
   const lastPositionRef = useRef(0);
-  const positionUpdateThreshold = 0.1;
   const hasPlayedNextRef = useRef(false);
+  const audioModeConfigured = useRef(false);
+  const lastUpdateTimeRef = useRef(0);
+
+  // Configure audio mode for background playback (once)
+  useEffect(() => {
+    async function setupAudioMode() {
+      if (audioModeConfigured.current) return;
+
+      try {
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          shouldPlayInBackground: true,
+          interruptionMode: 'doNotMix',
+        });
+        audioModeConfigured.current = true;
+        console.log('Audio mode configured for background playback');
+      } catch (error) {
+        console.error('Error configuring audio mode:', error);
+      }
+    }
+
+    setupAudioMode();
+  }, []);
 
   // Update state based on player status
   useEffect(() => {
@@ -41,23 +62,29 @@ export const useAudioPlayerBackground = () => {
     }
 
     const statusPosition = status.currentTime || 0;
+    const now = Date.now();
+
+    // Only update position if:
+    // 1. Not currently seeking
+    // 2. Position moved forward (or backward by more than threshold - user seeked)
+    // 3. Enough time passed since last update (throttle updates)
     if (statusPosition >= 0 && !isSeekingRef.current) {
-      const positionDiff = Math.abs(statusPosition - lastPositionRef.current);
-      if (positionDiff > positionUpdateThreshold) {
+      const positionDiff = statusPosition - lastPositionRef.current;
+      const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
+
+      // Update if position moved forward, or if it jumped backward significantly (user seeked)
+      const shouldUpdate =
+        positionDiff > 0.2 || // Forward progress
+        positionDiff < -1 || // Significant backward jump (seek)
+        timeSinceLastUpdate > 1000; // Or enough time passed (1 second)
+
+      if (shouldUpdate) {
         setPosition(statusPosition);
         lastPositionRef.current = statusPosition;
+        lastUpdateTimeRef.current = now;
       }
     }
   }, [status.isLoaded, status.playing, status.duration, status.currentTime, isPlaying, duration]);
-
-  // Update media controls when playback state changes
-  useEffect(() => {
-    if (currentTrack && duration > 0) {
-      MediaControls.updatePlaybackState(isPlaying, position).catch(error => {
-        console.error('Failed to update playback state:', error);
-      });
-    }
-  }, [isPlaying, position, currentTrack, duration]);
 
   // Play a specific song from the queue by index
   const playSongAtIndex = useCallback(async (index: number, queueToUse?: Song[]) => {
@@ -99,16 +126,17 @@ export const useAudioPlayerBackground = () => {
       setIsPlaying(true);
       setIsLoading(false);
 
-      // Update media controls with now playing info
-      MediaControls.updateNowPlaying({
-        title: song.name,
-        artist: song.artists?.primary?.map(a => a.name).join(', ') || 'Unknown Artist',
-        album: song.album?.name || '',
-        artworkUrl: song.image?.find(img => img.quality === '500x500')?.url || song.image?.[0]?.url,
-        duration: song.duration || 0,
-      }).catch(error => {
-        console.error('Failed to update now playing:', error);
-      });
+      // Enable lock screen controls with metadata
+      try {
+        player.setActiveForLockScreen(true, {
+          title: song.name,
+          artist: song.artists?.primary?.map(a => a.name).join(', ') || 'Unknown Artist',
+          albumTitle: song.album?.name || '',
+        });
+        console.log('Lock screen controls enabled for:', song.name);
+      } catch (error) {
+        console.error('Error setting lock screen controls:', error);
+      }
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsLoading(false);
@@ -155,16 +183,17 @@ export const useAudioPlayerBackground = () => {
       setIsPlaying(true);
       setIsLoading(false);
 
-      // Update media controls with now playing info
-      MediaControls.updateNowPlaying({
-        title: song.name,
-        artist: song.artists?.primary?.map(a => a.name).join(', ') || 'Unknown Artist',
-        album: song.album?.name || '',
-        artworkUrl: song.image?.find(img => img.quality === '500x500')?.url || song.image?.[0]?.url,
-        duration: song.duration || 0,
-      }).catch(error => {
-        console.error('Failed to update now playing:', error);
-      });
+      // Enable lock screen controls with metadata
+      try {
+        player.setActiveForLockScreen(true, {
+          title: song.name,
+          artist: song.artists?.primary?.map(a => a.name).join(', ') || 'Unknown Artist',
+          albumTitle: song.album?.name || '',
+        });
+        console.log('Lock screen controls enabled for:', song.name);
+      } catch (error) {
+        console.error('Error setting lock screen controls:', error);
+      }
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsLoading(false);
@@ -234,6 +263,12 @@ export const useAudioPlayerBackground = () => {
         player.pause();
         setCurrentTrack(null);
         setIsPlaying(false);
+        // Disable lock screen controls
+        try {
+          player.setActiveForLockScreen(false);
+        } catch (error) {
+          console.error('Error disabling lock screen controls:', error);
+        }
       }
 
       return newQueue;
@@ -333,10 +368,13 @@ export const useAudioPlayerBackground = () => {
       setDuration(0);
       setIsLoading(false);
 
-      // Clear media controls
-      MediaControls.clearNowPlaying().catch(error => {
-        console.error('Failed to clear now playing:', error);
-      });
+      // Disable lock screen controls
+      try {
+        player.setActiveForLockScreen(false);
+        console.log('Lock screen controls disabled');
+      } catch (error) {
+        console.error('Error disabling lock screen controls:', error);
+      }
     } catch (error) {
       console.error('Error in stopAndClear:', error);
       setCurrentTrack(null);
@@ -346,51 +384,6 @@ export const useAudioPlayerBackground = () => {
       setIsLoading(false);
     }
   }, [currentTrack, player]);
-
-  // Setup media control event listeners
-  useEffect(() => {
-    const onPlaySubscription = MediaControls.onPlay(() => {
-      if (currentTrack) {
-        player.play();
-      }
-    });
-
-    const onPauseSubscription = MediaControls.onPause(() => {
-      player.pause();
-    });
-
-    const onNextSubscription = MediaControls.onNext(() => {
-      if (currentIndex < queue.length - 1) {
-        playSongAtIndex(currentIndex + 1);
-      }
-    });
-
-    const onPreviousSubscription = MediaControls.onPrevious(() => {
-      if (currentIndex > 0) {
-        playSongAtIndex(currentIndex - 1);
-      }
-    });
-
-    const onSeekSubscription = MediaControls.onSeek((event) => {
-      if (event.position !== undefined) {
-        player.seekTo(event.position);
-      }
-    });
-
-    const onStopSubscription = MediaControls.onStop(() => {
-      player.pause();
-      MediaControls.clearNowPlaying();
-    });
-
-    return () => {
-      onPlaySubscription.remove();
-      onPauseSubscription.remove();
-      onNextSubscription.remove();
-      onPreviousSubscription.remove();
-      onSeekSubscription.remove();
-      onStopSubscription.remove();
-    };
-  }, [player, currentTrack, currentIndex, queue.length, playSongAtIndex]);
 
   return {
     currentTrack,

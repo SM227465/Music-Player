@@ -359,7 +359,7 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
             >
               {newReleases.slice(0, 10).map((release, index) => (
                 <TouchableOpacity
-                  key={release.id}
+                  key={`${release.id}-${index}`}
                   style={[
                     styles.releaseCard,
                     index === newReleases.slice(0, 10).length - 1 && { marginRight: spacing.xl },
