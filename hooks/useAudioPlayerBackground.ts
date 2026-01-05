@@ -2,6 +2,7 @@
 import { Song } from '@/types/searchSong';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import MediaControls from '../modules/expo-media-controls/src/index';
 
 export const useAudioPlayerBackground = () => {
   const player = useAudioPlayer();
@@ -49,6 +50,15 @@ export const useAudioPlayerBackground = () => {
     }
   }, [status.isLoaded, status.playing, status.duration, status.currentTime, isPlaying, duration]);
 
+  // Update media controls when playback state changes
+  useEffect(() => {
+    if (currentTrack && duration > 0) {
+      MediaControls.updatePlaybackState(isPlaying, position).catch(error => {
+        console.error('Failed to update playback state:', error);
+      });
+    }
+  }, [isPlaying, position, currentTrack, duration]);
+
   // Play a specific song from the queue by index
   const playSongAtIndex = useCallback(async (index: number, queueToUse?: Song[]) => {
     const currentQueue = queueToUse || queue;
@@ -88,6 +98,17 @@ export const useAudioPlayerBackground = () => {
       player.play();
       setIsPlaying(true);
       setIsLoading(false);
+
+      // Update media controls with now playing info
+      MediaControls.updateNowPlaying({
+        title: song.name,
+        artist: song.artists?.primary?.map(a => a.name).join(', ') || 'Unknown Artist',
+        album: song.album?.name || '',
+        artworkUrl: song.image?.find(img => img.quality === '500x500')?.url || song.image?.[0]?.url,
+        duration: song.duration || 0,
+      }).catch(error => {
+        console.error('Failed to update now playing:', error);
+      });
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsLoading(false);
@@ -133,6 +154,17 @@ export const useAudioPlayerBackground = () => {
       player.play();
       setIsPlaying(true);
       setIsLoading(false);
+
+      // Update media controls with now playing info
+      MediaControls.updateNowPlaying({
+        title: song.name,
+        artist: song.artists?.primary?.map(a => a.name).join(', ') || 'Unknown Artist',
+        album: song.album?.name || '',
+        artworkUrl: song.image?.find(img => img.quality === '500x500')?.url || song.image?.[0]?.url,
+        duration: song.duration || 0,
+      }).catch(error => {
+        console.error('Failed to update now playing:', error);
+      });
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsLoading(false);
@@ -300,6 +332,11 @@ export const useAudioPlayerBackground = () => {
       setPosition(0);
       setDuration(0);
       setIsLoading(false);
+
+      // Clear media controls
+      MediaControls.clearNowPlaying().catch(error => {
+        console.error('Failed to clear now playing:', error);
+      });
     } catch (error) {
       console.error('Error in stopAndClear:', error);
       setCurrentTrack(null);
@@ -309,6 +346,51 @@ export const useAudioPlayerBackground = () => {
       setIsLoading(false);
     }
   }, [currentTrack, player]);
+
+  // Setup media control event listeners
+  useEffect(() => {
+    const onPlaySubscription = MediaControls.onPlay(() => {
+      if (currentTrack) {
+        player.play();
+      }
+    });
+
+    const onPauseSubscription = MediaControls.onPause(() => {
+      player.pause();
+    });
+
+    const onNextSubscription = MediaControls.onNext(() => {
+      if (currentIndex < queue.length - 1) {
+        playSongAtIndex(currentIndex + 1);
+      }
+    });
+
+    const onPreviousSubscription = MediaControls.onPrevious(() => {
+      if (currentIndex > 0) {
+        playSongAtIndex(currentIndex - 1);
+      }
+    });
+
+    const onSeekSubscription = MediaControls.onSeek((event) => {
+      if (event.position !== undefined) {
+        player.seekTo(event.position);
+      }
+    });
+
+    const onStopSubscription = MediaControls.onStop(() => {
+      player.pause();
+      MediaControls.clearNowPlaying();
+    });
+
+    return () => {
+      onPlaySubscription.remove();
+      onPauseSubscription.remove();
+      onNextSubscription.remove();
+      onPreviousSubscription.remove();
+      onSeekSubscription.remove();
+      onStopSubscription.remove();
+    };
+  }, [player, currentTrack, currentIndex, queue.length, playSongAtIndex]);
 
   return {
     currentTrack,

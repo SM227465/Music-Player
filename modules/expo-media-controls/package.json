@@ -1,0 +1,26 @@
+{
+  "name": "expo-media-controls",
+  "version": "1.0.0",
+  "description": "Expo module for media playback controls on lock screen and notifications",
+  "main": "src/index.ts",
+  "scripts": {},
+  "keywords": [
+    "expo",
+    "media",
+    "controls",
+    "notification",
+    "lock-screen"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anonymous/music-app"
+  },
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "expo": "*"
+  },
+  "devDependencies": {
+    "expo-module-scripts": "^3.0.0"
+  }
+}
