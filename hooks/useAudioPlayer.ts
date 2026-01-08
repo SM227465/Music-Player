@@ -29,8 +29,6 @@ export const useCustomAudioPlayer = () => {
 
   // Update state based on player status with better handling
   useEffect(() => {
-    console.log('isLoaded', status.isLoaded);
-
     if (!status.isLoaded) {
       setIsLoading(true);
       return;

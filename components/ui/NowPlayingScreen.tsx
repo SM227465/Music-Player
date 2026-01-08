@@ -11,6 +11,7 @@ import { ActivityIndicator, Animated, Dimensions, Image, StyleSheet, Text, Touch
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QueueModal from './QueueModal';
 import LyricsModal from './LyricsModal';
+import SongOptionsModal from './SongOptionsModal';
 import { decodeHtmlEntities } from '../../utils/htmlDecode';
 
 type AudioPlayerType = ReturnType<typeof useAudioPlayerBackground>;
@@ -36,6 +37,7 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [showQueueModal, setShowQueueModal] = useState(false);
   const [showLyricsModal, setShowLyricsModal] = useState(false);
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [isSliding, setIsSliding] = useState(false);
   const slideAnim = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
   const {
@@ -433,7 +435,11 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
             <Ionicons name='chevron-down' size={iconSize.md} color={theme.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Now Playing</Text>
-          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            activeOpacity={0.7}
+            onPress={() => setShowOptionsModal(true)}
+          >
             <Ionicons name='ellipsis-horizontal' size={iconSize.md} color={theme.text.primary} />
           </TouchableOpacity>
         </View>
@@ -615,6 +621,15 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
         artistName={decodeHtmlEntities(currentTrack.artists?.primary?.map((a) => a.name).join(', ') || '')}
         isPlaying={isPlaying}
         currentTime={position}
+      />
+
+      {/* Song Options Modal */}
+      <SongOptionsModal
+        visible={showOptionsModal}
+        onClose={() => setShowOptionsModal(false)}
+        song={currentTrack}
+        onAddToFavorites={handleLikePress}
+        isFavorite={isLiked}
       />
     </Animated.View>
   );

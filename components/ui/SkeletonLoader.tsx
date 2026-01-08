@@ -1,7 +1,7 @@
 // components/ui/SkeletonLoader.tsx
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
-import { useTheme, spacing, borderRadius } from '@/constants/theme';
+import { Animated, StyleSheet, View, Text } from 'react-native';
+import { useTheme, spacing, borderRadius, fontSize, fontWeight } from '@/constants/theme';
 
 interface SkeletonProps {
   width?: number | string;
@@ -85,10 +85,17 @@ export function SkeletonArtistCard({ size = 100 }: SkeletonArtistCardProps) {
 export function HomeScreenSkeleton() {
   const theme = useTheme();
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   const renderSkeletonSection = (title: string, cardCount: number, isArtist: boolean = false) => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Skeleton width={150} height={24} />
+        <Text style={[styles.sectionTitle, { color: theme.text.primary }]}>{title}</Text>
       </View>
       <View style={styles.scrollContainer}>
         {Array.from({ length: cardCount }).map((_, index) => (
@@ -104,16 +111,16 @@ export function HomeScreenSkeleton() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
-      {/* Header Skeleton */}
+      {/* Header - Show actual greeting text */}
       <View style={styles.header}>
         <View>
-          <Skeleton width={200} height={32} style={{ marginBottom: spacing.sm }} />
-          <Skeleton width={150} height={16} />
+          <Text style={[styles.greeting, { color: theme.text.primary }]}>{getGreeting()}</Text>
+          <Text style={[styles.subtitle, { color: theme.text.secondary }]}>Discover your favorite music</Text>
         </View>
         <Skeleton width={48} height={48} borderRadius={borderRadius.full} />
       </View>
 
-      {/* Content Skeleton */}
+      {/* Content - Show section titles with skeleton cards */}
       <View style={styles.content}>
         {renderSkeletonSection('New Releases', 3)}
         {renderSkeletonSection('Top Playlists', 3)}
@@ -172,6 +179,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.lg,
   },
+  greeting: {
+    fontSize: fontSize.xxxl,
+    fontWeight: fontWeight.bold,
+  },
+  subtitle: {
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+  },
   content: {
     flex: 1,
     paddingTop: spacing.md,
@@ -182,6 +197,10 @@ const styles = StyleSheet.create({
   sectionHeader: {
     paddingHorizontal: spacing.xl,
     marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
   },
   scrollContainer: {
     flexDirection: 'row',

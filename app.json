@@ -38,28 +38,18 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6366f1"
+    },
     "plugins": [
       "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
-        }
-      ],
       [
         "expo-audio",
         {
           "supportsBackgroundAudio": true,
           "audioMode": "playback"
-        }
-      ],
-      [
-        "expo-av",
-        {
-          "microphonePermission": false
         }
       ],
       "expo-font",

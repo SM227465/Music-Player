@@ -6,8 +6,6 @@ import NavigationBar from '@/components/ui/NavigationBar';
 import NowPlayingScreen from '@/components/ui/NowPlayingScreen';
 import ProfileScreen from '@/components/ui/ProfileScreen';
 import SearchScreen from '@/components/ui/SearchScreen';
-import SignInScreen from '@/components/ui/SignInScreen';
-import WelcomeScreen from '@/components/ui/WelcomeScreen';
 import { useAudioPlayerBackground } from '@/hooks/useAudioPlayerBackground';
 import { Song } from '@/types/searchSong';
 import React, { useState } from 'react';
@@ -62,7 +60,13 @@ function MainApp() {
           />
         );
       case 'search':
-        return <SearchScreen onSongPress={handleSongPress} />;
+        return (
+          <SearchScreen
+            onSongPress={handleSongPress}
+            currentTrack={audioPlayer.currentTrack}
+            isPlaying={audioPlayer.isPlaying}
+          />
+        );
       case 'library':
         return <LibraryScreen />;
       case 'profile':
@@ -114,18 +118,10 @@ function MainApp() {
 export default function TabLayout() {
   const [currentScreen, setCurrentScreen] = useState('splash');
 
-  const handleSkipToMain = () => {
-    setCurrentScreen('main');
-  };
-
   const renderScreen = () => {
     switch (currentScreen) {
       case 'splash':
         return <SplashScreen />;
-      case 'welcome':
-        return <WelcomeScreen onNext={() => setCurrentScreen('signin')} onSkip={handleSkipToMain} />;
-      case 'signin':
-        return <SignInScreen onSkip={handleSkipToMain} />;
       case 'main':
         return <MainApp />;
       default:
@@ -133,11 +129,11 @@ export default function TabLayout() {
     }
   };
 
-  // Auto-navigate from splash to welcome after 3 seconds
+  // Auto-navigate from splash to main after 3 seconds
   React.useEffect(() => {
     const timer = setTimeout(() => {
       if (currentScreen === 'splash') {
-        setCurrentScreen('welcome');
+        setCurrentScreen('main');
       }
     }, 3000);
 

@@ -10,10 +10,9 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor for logging
+// Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    console.log('API Request:', config.url);
     return config;
   },
   (error) => {
@@ -25,9 +24,26 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.log(error);
-    
-    // console.error('API Error:', error.response?.data || error.message);
-    // return Promise.reject(error);
+    // Log detailed error information for debugging
+    if (error.response) {
+      // Server responded with error status
+      console.error('API Error:', {
+        status: error.response.status,
+        url: error.config?.url,
+        data: error.response.data,
+      });
+    } else if (error.request) {
+      // Request made but no response received
+      console.error('Network Error:', {
+        url: error.config?.url,
+        message: 'No response received from server',
+      });
+    } else {
+      // Request setup error
+      console.error('Request Error:', error.message);
+    }
+
+    // Always reject the error so it can be handled by the caller
+    return Promise.reject(error);
   }
 );

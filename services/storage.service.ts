@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   HISTORY: '@music_app:history',
   SETTINGS: '@music_app:settings',
   QUEUE: '@music_app:queue',
+  RECENT_SEARCHES: '@music_app:recent_searches',
 } as const;
 
 export interface Playlist {
@@ -383,6 +384,72 @@ export const queueService = {
       await this.setQueue(songs);
     } catch (error) {
       console.error('Error reordering queue:', error);
+      throw error;
+    }
+  },
+};
+
+// Recent Searches Management
+export const recentSearchesService = {
+  async getRecentSearches(limit: number = 5): Promise<string[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.RECENT_SEARCHES);
+      const searches: string[] = data ? JSON.parse(data) : [];
+      return searches.slice(0, limit);
+    } catch (error) {
+      console.error('Error getting recent searches:', error);
+      return [];
+    }
+  },
+
+  async addRecentSearch(query: string): Promise<void> {
+    try {
+      if (!query.trim()) return;
+
+      const searches = await this.getAllSearches();
+
+      // Remove duplicate if exists
+      const filtered = searches.filter((search) => search.toLowerCase() !== query.toLowerCase());
+
+      // Add new search at the beginning
+      filtered.unshift(query.trim());
+
+      // Keep only last 20 searches
+      const limited = filtered.slice(0, 20);
+
+      await AsyncStorage.setItem(STORAGE_KEYS.RECENT_SEARCHES, JSON.stringify(limited));
+    } catch (error) {
+      console.error('Error adding recent search:', error);
+      throw error;
+    }
+  },
+
+  async getAllSearches(): Promise<string[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.RECENT_SEARCHES);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error getting all searches:', error);
+      return [];
+    }
+  },
+
+  async removeRecentSearch(query: string): Promise<void> {
+    try {
+      const searches = await this.getAllSearches();
+      const filtered = searches.filter((search) => search !== query);
+      await AsyncStorage.setItem(STORAGE_KEYS.RECENT_SEARCHES, JSON.stringify(filtered));
+    } catch (error) {
+      console.error('Error removing recent search:', error);
+      throw error;
+    }
+  },
+
+  async clearRecentSearches(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.RECENT_SEARCHES);
+    } catch (error) {
+      console.error('Error clearing recent searches:', error);
       throw error;
     }
   },

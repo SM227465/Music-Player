@@ -4,7 +4,6 @@ import { ArtistResult } from '@/types/artistSearch';
 import { SongResult } from '@/types/globalSearch';
 import { Song } from '@/types/searchSong';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -26,24 +25,44 @@ import {
   useSearchAlbumsInfinite,
   useSearchArtistsInfinite,
 } from '../../hooks/useApiQueries';
+import { useRecentSearches } from '../../hooks/useRecentSearches';
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
+import { decodeHtmlEntities } from '@/utils/htmlDecode';
+import { Skeleton } from './SkeletonLoader';
+import NowPlayingIndicator from './NowPlayingIndicator';
 
 interface SearchScreenProps {
   onSongPress: (song: Song) => void;
+  currentTrack?: Song | null;
+  isPlaying?: boolean;
   // onAlbumPress: (album: AlbumSearchResult) => void;
   // onArtistPress: (artist: ArtistSearchResult) => void;
 }
 
-export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPress */ }: SearchScreenProps) {
+export default function SearchScreen({ onSongPress, currentTrack, isPlaying /*, onAlbumPress, onArtistPress */ }: SearchScreenProps) {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Songs');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const { recentSearches, addRecentSearch, removeRecentSearch, clearRecentSearches } = useRecentSearches(5);
+
+  // Popular searches - dummy data (TODO: Replace with API data)
+  const popularSearches = [
+    'Arijit Singh',
+    'Atif Aslam',
+    'Shreya Ghoshal',
+    'AR Rahman',
+    'Neha Kakkar',
+  ];
 
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
+      // Add to recent searches when user searches
+      if (searchQuery.trim().length > 0) {
+        addRecentSearch(searchQuery.trim());
+      }
     }, 500);
 
     return () => clearTimeout(timer);
@@ -98,34 +117,57 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  // Check if a song is currently playing
+  const isCurrentlyPlaying = (song: Song) => {
+    return currentTrack?.id === song.id && isPlaying;
+  };
+
   // Render functions for individual search results
-  const renderSongItem = ({ item }: { item: Song }) => (
-    <TouchableOpacity style={styles.resultItem} onPress={() => onSongPress(item)}>
-      <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.resultImage} />
-      <View style={styles.resultInfo}>
-        <Text style={styles.resultTitle} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.resultSubtitle} numberOfLines={1}>
-          {item.artists.primary.map((artist) => artist.name).join(', ')}
-        </Text>
-        <Text style={styles.resultDuration}>{formatDuration(item.duration)}</Text>
-      </View>
-      <TouchableOpacity style={styles.playButton} onPress={() => onSongPress(item)}>
-        <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
+  const renderSongItem = ({ item }: { item: Song }) => {
+    const isPlayingNow = isCurrentlyPlaying(item);
+
+    return (
+      <TouchableOpacity style={styles.resultItem} onPress={() => onSongPress(item)}>
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.resultImage} />
+          {isPlayingNow && (
+            <View style={styles.playingOverlay}>
+              <NowPlayingIndicator isPlaying={true} />
+            </View>
+          )}
+        </View>
+        <View style={styles.resultInfo}>
+          <Text style={[styles.resultTitle, isPlayingNow && { color: theme.accent.primary }]} numberOfLines={1}>
+            {decodeHtmlEntities(item.name)}
+          </Text>
+          <Text style={styles.resultSubtitle} numberOfLines={1}>
+            {item.artists.primary.map((artist) => decodeHtmlEntities(artist.name)).join(', ')}
+          </Text>
+          <Text style={styles.resultDuration}>{formatDuration(item.duration)}</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.playButton, isPlayingNow && { backgroundColor: theme.accent.secondary }]}
+          onPress={() => onSongPress(item)}
+        >
+          <Ionicons
+            name={isPlayingNow ? 'pause' : 'play'}
+            size={iconSize.sm}
+            color={theme.text.inverse}
+          />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   const renderAlbumItem = ({ item }: { item: AlbumResult }) => (
     <TouchableOpacity style={styles.resultItem} onPress={() => /* onAlbumPress(item)*/ () => {}}>
       <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.resultImage} />
       <View style={styles.resultInfo}>
         <Text style={styles.resultTitle} numberOfLines={1}>
-          {item.name}
+          {decodeHtmlEntities(item.name)}
         </Text>
         <Text style={styles.resultSubtitle} numberOfLines={1}>
-          {item.artists.primary.map((artist) => artist.name).join(', ')}
+          {item.artists.primary.map((artist) => decodeHtmlEntities(artist.name)).join(', ')}
         </Text>
         <Text style={styles.resultDuration}>Album • {item.year}</Text>
       </View>
@@ -140,7 +182,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
       <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.artistImage} />
       <View style={styles.resultInfo}>
         <Text style={styles.resultTitle} numberOfLines={1}>
-          {item.name}
+          {decodeHtmlEntities(item.name)}
         </Text>
         <Text style={styles.resultSubtitle}>Artist</Text>
       </View>
@@ -152,14 +194,14 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
 
   // Render functions for global search results
   const renderGlobalSongItem = ({ item }: { item: SongResult }) => (
-    <TouchableOpacity style={styles.resultItem} onPress={() => console.log('Global song pressed:', item.title)}>
+    <TouchableOpacity style={styles.resultItem} onPress={() => {/* TODO: Navigate to song details */}}>
       <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.resultImage} />
       <View style={styles.resultInfo}>
         <Text style={styles.resultTitle} numberOfLines={1}>
-          {item.title}
+          {decodeHtmlEntities(item.title)}
         </Text>
         <Text style={styles.resultSubtitle} numberOfLines={1}>
-          {item.primaryArtists || item.singers}
+          {decodeHtmlEntities(item.primaryArtists || item.singers)}
         </Text>
       </View>
       <TouchableOpacity style={styles.playButton}>
@@ -169,14 +211,14 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
   );
 
   const renderGlobalAlbumItem = ({ item }: { item: AlbumResult }) => (
-    <TouchableOpacity style={styles.resultItem} onPress={() => console.log('Global album pressed:', item.name)}>
+    <TouchableOpacity style={styles.resultItem} onPress={() => {/* TODO: Navigate to album details */}}>
       <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.resultImage} />
       <View style={styles.resultInfo}>
         <Text style={styles.resultTitle} numberOfLines={1}>
-          {item.name}
+          {decodeHtmlEntities(item.name)}
         </Text>
         <Text style={styles.resultSubtitle} numberOfLines={1}>
-          {item.artists.primary.join(',')}
+          {item.artists.primary.map((artist) => decodeHtmlEntities(artist.name)).join(', ')}
         </Text>
         <Text style={styles.resultDuration}>Album • {item.year}</Text>
       </View>
@@ -187,11 +229,11 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
   );
 
   const renderGlobalArtistItem = ({ item }: { item: ArtistResult }) => (
-    <TouchableOpacity style={styles.resultItem} onPress={() => console.log('Global artist pressed:', item.name)}>
+    <TouchableOpacity style={styles.resultItem} onPress={() => {/* TODO: Navigate to artist details */}}>
       <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.artistImage} />
       <View style={styles.resultInfo}>
         <Text style={styles.resultTitle} numberOfLines={1}>
-          {item.name}
+          {decodeHtmlEntities(item.name)}
         </Text>
         <Text style={styles.resultSubtitle}>Artist</Text>
       </View>
@@ -202,11 +244,11 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
   );
 
   const renderPlaylistItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.resultItem} onPress={() => console.log('Playlist pressed:', item.title)}>
+    <TouchableOpacity style={styles.resultItem} onPress={() => {/* TODO: Navigate to playlist details */}}>
       <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.resultImage} />
       <View style={styles.resultInfo}>
         <Text style={styles.resultTitle} numberOfLines={1}>
-          {item.title}
+          {decodeHtmlEntities(item.title)}
         </Text>
         <Text style={styles.resultSubtitle}>Playlist</Text>
       </View>
@@ -217,6 +259,23 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
   );
 
   const isLoading = globalLoading || songLoading || albumLoading || artistLoading;
+
+  // Render skeleton loading for search results
+  const renderSearchSkeleton = () => (
+    <View style={styles.skeletonContainer}>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <View key={index} style={styles.skeletonItem}>
+          <Skeleton width={50} height={50} borderRadius={borderRadius.sm} />
+          <View style={styles.skeletonInfo}>
+            <Skeleton width="70%" height={14} style={{ marginBottom: spacing.xs }} />
+            <Skeleton width="50%" height={12} style={{ marginBottom: spacing.xs }} />
+            <Skeleton width="30%" height={10} />
+          </View>
+          <Skeleton width={iconSize.xl} height={iconSize.xl} borderRadius={borderRadius.full} />
+        </View>
+      ))}
+    </View>
+  );
 
   const renderLoadingFooter = (isFetching: boolean) => {
     if (!isFetching) return null;
@@ -327,8 +386,8 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
       alignItems: 'center',
       backgroundColor: theme.card.background,
       borderRadius: borderRadius.full,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
       borderWidth: 1,
       borderColor: theme.border.primary,
       shadowColor: theme.shadow.color,
@@ -431,6 +490,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
       elevation: 2,
     },
     recentSearchText: {
+      flex: 1,
       fontSize: fontSize.base,
       color: theme.text.primary,
       marginLeft: spacing.md,
@@ -461,11 +521,25 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
       shadowRadius: 4,
       elevation: 2,
     },
+    imageContainer: {
+      position: 'relative',
+      marginRight: spacing.md,
+    },
     resultImage: {
       width: 50,
       height: 50,
       borderRadius: borderRadius.sm,
-      marginRight: spacing.md,
+    },
+    playingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      borderRadius: borderRadius.sm,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     artistImage: {
       width: 50,
@@ -553,6 +627,39 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
       color: theme.text.secondary,
       marginLeft: spacing.sm,
     },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.lg,
+    },
+    clearText: {
+      fontSize: fontSize.sm,
+      color: theme.accent.primary,
+      fontWeight: fontWeight.semibold,
+    },
+    removeButton: {
+      padding: spacing.xs,
+      marginLeft: spacing.sm,
+    },
+    skeletonContainer: {
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing.md,
+    },
+    skeletonItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.card.background,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+    },
+    skeletonInfo: {
+      flex: 1,
+      marginLeft: spacing.md,
+    },
   });
 
   return (
@@ -601,9 +708,7 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
 
           {/* Search Results */}
           {isLoading ? (
-            <View style={styles.loaderContainer}>
-              <ActivityIndicator size='large' color={theme.accent.primary} />
-            </View>
+            renderSearchSkeleton()
           ) : activeFilter === 'All' && globalResults?.data ? (
             <ScrollView style={styles.resultsContainer} showsVerticalScrollIndicator={false}>
               <View style={styles.results}>
@@ -683,35 +788,46 @@ export default function SearchScreen({ onSongPress /*, onAlbumPress, onArtistPre
           )}
         </>
       ) : (
-        /* Default State */
+        /* Default State - Recent & Popular Searches */
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Popular Categories</Text>
-            <View style={styles.categoriesGrid}>
-              {[
-                { title: 'Pop', color: '#FF6B6B' },
-                { title: 'Rock', color: '#4ECDC4' },
-                { title: 'Hip Hop', color: '#45B7D1' },
-                { title: 'Jazz', color: '#96CEB4' },
-                { title: 'Classical', color: '#FECA57' },
-                { title: 'Electronic', color: '#FF9FF3' },
-              ].map((category, index) => (
-                <TouchableOpacity key={index} style={styles.categoryCard} onPress={() => setSearchQuery(category.title)}>
-                  <LinearGradient colors={[category.color, category.color + '80']} style={styles.categoryGradient}>
-                    <Text style={styles.categoryTitle}>{category.title}</Text>
-                  </LinearGradient>
+          {/* Recent Searches */}
+          {recentSearches.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>Recent Searches</Text>
+                <TouchableOpacity onPress={() => clearRecentSearches()}>
+                  <Text style={styles.clearText}>Clear All</Text>
                 </TouchableOpacity>
-              ))}
+              </View>
+              <View style={styles.recentSearches}>
+                {recentSearches.map((search, index) => (
+                  <TouchableOpacity key={index} style={styles.recentSearchItem} onPress={() => setSearchQuery(search)}>
+                    <Ionicons name='time-outline' size={iconSize.sm} color={theme.text.secondary} />
+                    <Text style={styles.recentSearchText}>{search}</Text>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        removeRecentSearch(search);
+                      }}
+                      style={styles.removeButton}
+                    >
+                      <Ionicons name='close' size={iconSize.xs} color={theme.text.tertiary} />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
+          )}
 
+          {/* Popular Searches */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Searches</Text>
+            <Text style={styles.sectionTitle}>Popular Searches</Text>
             <View style={styles.recentSearches}>
-              {['The Weeknd', 'Billie Eilish', 'Ed Sheeran', 'Taylor Swift'].map((search, index) => (
+              {popularSearches.map((search, index) => (
                 <TouchableOpacity key={index} style={styles.recentSearchItem} onPress={() => setSearchQuery(search)}>
-                  <Ionicons name='time-outline' size={iconSize.sm} color={theme.text.secondary} />
+                  <Ionicons name='trending-up' size={iconSize.sm} color={theme.accent.primary} />
                   <Text style={styles.recentSearchText}>{search}</Text>
+                  <Ionicons name='chevron-forward' size={iconSize.xs} color={theme.text.tertiary} />
                 </TouchableOpacity>
               ))}
             </View>

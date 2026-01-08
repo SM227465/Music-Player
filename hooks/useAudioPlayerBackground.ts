@@ -33,7 +33,6 @@ export const useAudioPlayerBackground = () => {
           interruptionMode: 'doNotMix',
         });
         audioModeConfigured.current = true;
-        console.log('Audio mode configured for background playback');
       } catch (error) {
         console.error('Error configuring audio mode:', error);
       }
@@ -111,7 +110,6 @@ export const useAudioPlayerBackground = () => {
         return;
       }
 
-      console.log('Playing:', song.name, 'at index:', index, 'from URL:', audioUrl);
 
       // Replace the current track
       player.replace(audioUrl);
@@ -126,17 +124,8 @@ export const useAudioPlayerBackground = () => {
       setIsPlaying(true);
       setIsLoading(false);
 
-      // Enable lock screen controls with metadata
-      try {
-        player.setActiveForLockScreen(true, {
-          title: song.name,
-          artist: song.artists?.primary?.map(a => a.name).join(', ') || 'Unknown Artist',
-          albumTitle: song.album?.name || '',
-        });
-        console.log('Lock screen controls enabled for:', song.name);
-      } catch (error) {
-        console.error('Error setting lock screen controls:', error);
-      }
+      // Note: Lock screen controls would be handled by expo-media-controls native module
+      // or through expo-audio's built-in media session if available
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsLoading(false);
@@ -169,7 +158,6 @@ export const useAudioPlayerBackground = () => {
         return;
       }
 
-      console.log('Playing:', song.name, 'from URL:', audioUrl);
 
       // Replace the current track
       player.replace(audioUrl);
@@ -183,17 +171,8 @@ export const useAudioPlayerBackground = () => {
       setIsPlaying(true);
       setIsLoading(false);
 
-      // Enable lock screen controls with metadata
-      try {
-        player.setActiveForLockScreen(true, {
-          title: song.name,
-          artist: song.artists?.primary?.map(a => a.name).join(', ') || 'Unknown Artist',
-          albumTitle: song.album?.name || '',
-        });
-        console.log('Lock screen controls enabled for:', song.name);
-      } catch (error) {
-        console.error('Error setting lock screen controls:', error);
-      }
+      // Note: Lock screen controls would be handled by expo-media-controls native module
+      // or through expo-audio's built-in media session if available
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsLoading(false);
@@ -207,7 +186,6 @@ export const useAudioPlayerBackground = () => {
       return;
     }
 
-    console.log('Setting up queue with', songs.length, 'songs, starting at index', startIndex);
     setQueue(songs);
     // Pass the songs array directly to avoid state update timing issues
     await playSongAtIndex(startIndex, songs);
@@ -230,7 +208,6 @@ export const useAudioPlayerBackground = () => {
 
       // Only auto-play if we haven't already played next for this song
       if (isNearEnd && queue.length > 0 && currentIndex < queue.length - 1 && !hasPlayedNextRef.current) {
-        console.log('Auto-playing next song in queue:', currentIndex + 1);
         hasPlayedNextRef.current = true; // Prevent multiple triggers
         playNext();
       }
@@ -263,12 +240,7 @@ export const useAudioPlayerBackground = () => {
         player.pause();
         setCurrentTrack(null);
         setIsPlaying(false);
-        // Disable lock screen controls
-        try {
-          player.setActiveForLockScreen(false);
-        } catch (error) {
-          console.error('Error disabling lock screen controls:', error);
-        }
+        // Lock screen controls cleanup handled by native module
       }
 
       return newQueue;
@@ -368,13 +340,7 @@ export const useAudioPlayerBackground = () => {
       setDuration(0);
       setIsLoading(false);
 
-      // Disable lock screen controls
-      try {
-        player.setActiveForLockScreen(false);
-        console.log('Lock screen controls disabled');
-      } catch (error) {
-        console.error('Error disabling lock screen controls:', error);
-      }
+      // Lock screen controls cleanup handled by native module
     } catch (error) {
       console.error('Error in stopAndClear:', error);
       setCurrentTrack(null);
