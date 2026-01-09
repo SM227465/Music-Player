@@ -2,8 +2,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Image,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,7 +13,7 @@ import {
 } from 'react-native';
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 import { Song } from '@/types/searchSong';
-import { useArtistDetails } from '@/hooks/useJioSaavnQueries';
+import { useArtistDetails, useArtistSongsInfinite, useArtistAlbumsInfinite } from '@/hooks/useJioSaavnQueries';
 import { decodeHtmlEntities } from '../../utils/htmlDecode';
 import NowPlayingIndicator from './NowPlayingIndicator';
 import { TopSong } from '@/types/artistDetails';
@@ -22,6 +24,7 @@ interface ArtistDetailScreenProps {
   onBack: () => void;
   onSongPress?: (song: Song) => void;
   onPlayQueue?: (songs: Song[], startIndex: number) => void;
+  onAlbumPress?: (albumUrl: string) => void;
   currentTrack?: Song | null;
   isPlaying?: boolean;
   onTogglePlayPause?: () => void;
@@ -32,6 +35,7 @@ export default function ArtistDetailScreen({
   onBack,
   onSongPress,
   onPlayQueue,
+  onAlbumPress,
   currentTrack,
   isPlaying,
   onTogglePlayPause,
@@ -39,8 +43,32 @@ export default function ArtistDetailScreen({
   const theme = useTheme();
   const { data: artistResponse, isLoading, isError } = useArtistDetails(artistId);
   const [showFullBio, setShowFullBio] = useState(false);
+  const [activeTab, setActiveTab] = useState<'songs' | 'albums'>('songs');
+  const [sortBy, setSortBy] = useState('popularity');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   const artist = artistResponse?.data;
+
+  // Infinite scroll queries for songs and albums
+  const {
+    data: songsData,
+    isLoading: songsLoading,
+    fetchNextPage: fetchNextSongs,
+    hasNextPage: hasNextSongs,
+    isFetchingNextPage: isFetchingNextSongs,
+  } = useArtistSongsInfinite(artistId, sortBy, sortOrder, true);
+
+  const {
+    data: albumsData,
+    isLoading: albumsLoading,
+    fetchNextPage: fetchNextAlbums,
+    hasNextPage: hasNextAlbums,
+    isFetchingNextPage: isFetchingNextAlbums,
+  } = useArtistAlbumsInfinite(artistId, sortBy, sortOrder, true);
+
+  // Flatten paginated data
+  const songs = songsData?.pages.flatMap((page) => page.data?.songs || []) || [];
+  const albums = albumsData?.pages.flatMap((page) => page.data?.albums || []) || [];
 
   const styles = StyleSheet.create({
     container: {
@@ -231,6 +259,90 @@ export default function ArtistDetailScreen({
       justifyContent: 'center',
       alignItems: 'center',
     },
+    tabContainer: {
+      flexDirection: 'row',
+      paddingVertical: spacing.md,
+      gap: spacing.md,
+    },
+    tab: {
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.xl,
+      backgroundColor: theme.card.background,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+    },
+    activeTab: {
+      backgroundColor: theme.accent.primary,
+      borderColor: theme.accent.primary,
+      shadowColor: theme.accent.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    tabText: {
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+      fontWeight: fontWeight.medium,
+    },
+    activeTabText: {
+      color: theme.text.inverse,
+      fontWeight: fontWeight.semibold,
+    },
+    sortContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingVertical: spacing.md,
+    },
+    sortButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.lg,
+      backgroundColor: theme.card.background,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      gap: spacing.xs,
+    },
+    sortButtonText: {
+      fontSize: fontSize.xs,
+      color: theme.text.secondary,
+      fontWeight: fontWeight.medium,
+    },
+    loadingFooter: {
+      paddingVertical: spacing.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    loadingFooterText: {
+      marginTop: spacing.sm,
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+    },
+    albumItem: {
+      width: 140,
+      marginRight: spacing.md,
+      marginBottom: spacing.md,
+    },
+    albumImage: {
+      width: 140,
+      height: 140,
+      borderRadius: borderRadius.lg,
+      marginBottom: spacing.sm,
+    },
+    albumTitle: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.semibold,
+      color: theme.text.primary,
+      marginBottom: spacing.xs,
+    },
+    albumSubtitle: {
+      fontSize: fontSize.xs,
+      color: theme.text.secondary,
+    },
   });
 
   const getImageUrl = (images: Array<{ quality: string; url: string }>, quality: string = '500x500') => {
@@ -296,6 +408,138 @@ export default function ArtistDetailScreen({
         onSongPress(songs[0]);
       }
     }
+  };
+
+  // New handlers for infinite scroll songs
+  const convertSongToSong = (song: any): Song => {
+    return {
+      id: song.id,
+      name: song.name,
+      type: song.type,
+      year: song.year,
+      releaseDate: song.releaseDate,
+      duration: song.duration,
+      label: song.label,
+      explicitContent: song.explicitContent,
+      playCount: song.playCount ?? 0,
+      language: song.language,
+      hasLyrics: song.hasLyrics,
+      lyricsId: song.lyricsId,
+      url: song.url,
+      copyright: song.copyright,
+      album: song.album,
+      artists: song.artists,
+      image: song.image,
+      downloadUrl: song.downloadUrl,
+    };
+  };
+
+  const handleInfiniteSongPress = (song: any, index: number) => {
+    const convertedSong = convertSongToSong(song);
+
+    if (onPlayQueue && songs.length > 0) {
+      const allSongs = songs.map(convertSongToSong);
+      onPlayQueue(allSongs, index);
+    } else if (onSongPress) {
+      onSongPress(convertedSong);
+    }
+  };
+
+  const handleAlbumPress = (album: any) => {
+    if (onAlbumPress && album.url) {
+      onAlbumPress(album.url);
+    }
+  };
+
+  const handleEndReached = () => {
+    if (activeTab === 'songs') {
+      if (hasNextSongs && !isFetchingNextSongs) {
+        fetchNextSongs();
+      }
+    } else {
+      if (hasNextAlbums && !isFetchingNextAlbums) {
+        fetchNextAlbums();
+      }
+    }
+  };
+
+  const renderLoadingFooter = () => {
+    const isFetching = activeTab === 'songs' ? isFetchingNextSongs : isFetchingNextAlbums;
+    if (!isFetching) return null;
+
+    return (
+      <View style={styles.loadingFooter}>
+        <ActivityIndicator size="small" color={theme.accent.primary} />
+        <Text style={styles.loadingFooterText}>Loading more...</Text>
+      </View>
+    );
+  };
+
+  // Render infinite scroll song item
+  const renderInfiniteSongItem = ({ item, index }: { item: any; index: number }) => {
+    const isCurrentTrack = currentTrack?.id === item.id;
+
+    return (
+      <TouchableOpacity
+        style={[styles.songItem, isCurrentTrack && { backgroundColor: theme.accent.primary + '15', borderColor: theme.accent.primary + '40' }]}
+        onPress={() => handleInfiniteSongPress(item, index)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.songIndexContainer}>
+          {isCurrentTrack ? (
+            <NowPlayingIndicator isPlaying={isPlaying ?? false} />
+          ) : (
+            <Text style={styles.songIndex}>{(index + 1).toString().padStart(2, '0')}</Text>
+          )}
+        </View>
+        <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.songImage} resizeMode='cover' />
+        <View style={styles.songInfo}>
+          <Text style={[styles.songTitle, isCurrentTrack && { color: theme.accent.primary }]} numberOfLines={1}>
+            {decodeHtmlEntities(item.name)}
+          </Text>
+          <Text style={styles.songArtist} numberOfLines={1}>
+            {item.artists?.primary?.map((artist: any) => decodeHtmlEntities(artist.name)).join(', ') || decodeHtmlEntities(item.album?.name || '')}
+          </Text>
+        </View>
+        <Text style={styles.songDuration}>{formatDuration(item.duration)}</Text>
+        <TouchableOpacity
+          style={styles.songPlayButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            if (isCurrentTrack && onTogglePlayPause) {
+              onTogglePlayPause();
+            } else {
+              handleInfiniteSongPress(item, index);
+            }
+          }}
+        >
+          <Ionicons
+            name={isCurrentTrack ? (isPlaying ? 'pause' : 'play') : 'play'}
+            size={iconSize.sm}
+            color={theme.accent.primary}
+          />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+  };
+
+  // Render album item
+  const renderAlbumItem = ({ item }: { item: any }) => {
+    return (
+      <TouchableOpacity
+        style={styles.albumItem}
+        onPress={() => handleAlbumPress(item)}
+        activeOpacity={0.7}
+      >
+        <Image source={{ uri: getImageUrl(item.image, '500x500') }} style={styles.albumImage} resizeMode='cover' />
+        <Text style={styles.albumTitle} numberOfLines={1}>
+          {decodeHtmlEntities(item.name)}
+        </Text>
+        <Text style={styles.albumSubtitle} numberOfLines={1}>
+          {item.year || 'Album'}
+        </Text>
+      </TouchableOpacity>
+    );
   };
 
   const renderSongItem = ({ item, index }: { item: TopSong; index: number }) => {
@@ -376,10 +620,15 @@ export default function ArtistDetailScreen({
   return (
     <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       <FlatList
-        data={artist.topSongs}
-        renderItem={renderSongItem}
-        keyExtractor={(item) => item.id}
+        data={activeTab === 'songs' ? songs : albums}
+        renderItem={activeTab === 'songs' ? renderInfiniteSongItem : renderAlbumItem}
+        keyExtractor={(item, index) => `${activeTab}-${item.id}-${index}`}
+        numColumns={activeTab === 'albums' ? 2 : 1}
+        key={activeTab}
         contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: spacing.xl }}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderLoadingFooter}
         ListHeaderComponent={
           <>
             <View style={[styles.header, { paddingTop: 60 }]}>
@@ -432,11 +681,53 @@ export default function ArtistDetailScreen({
               </View>
             )}
 
-            <View style={styles.topSongsHeader}>
-              <Text style={styles.topSongsTitle}>Top Songs</Text>
-              <TouchableOpacity style={styles.playAllButton} onPress={handlePlayAll}>
-                <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
-                <Text style={styles.playAllText}>Play All</Text>
+            {/* Tabs */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.tabContainer}
+            >
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'songs' && styles.activeTab]}
+                onPress={() => setActiveTab('songs')}
+              >
+                <Text style={[styles.tabText, activeTab === 'songs' && styles.activeTabText]}>
+                  Songs
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'albums' && styles.activeTab]}
+                onPress={() => setActiveTab('albums')}
+              >
+                <Text style={[styles.tabText, activeTab === 'albums' && styles.activeTabText]}>
+                  Albums
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+
+            {/* Sort Options */}
+            <View style={styles.sortContainer}>
+              <TouchableOpacity
+                style={styles.sortButton}
+                onPress={() => setSortBy(sortBy === 'popularity' ? 'latest' : sortBy === 'latest' ? 'alphabetical' : 'popularity')}
+              >
+                <Ionicons name='filter' size={iconSize.xs} color={theme.text.secondary} />
+                <Text style={styles.sortButtonText}>
+                  {sortBy === 'popularity' ? 'Popular' : sortBy === 'latest' ? 'Latest' : 'A-Z'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sortButton}
+                onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+              >
+                <Ionicons
+                  name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
+                  size={iconSize.xs}
+                  color={theme.text.secondary}
+                />
+                <Text style={styles.sortButtonText}>
+                  {sortOrder === 'desc' ? 'Desc' : 'Asc'}
+                </Text>
               </TouchableOpacity>
             </View>
           </>

@@ -16,4 +16,30 @@ export const artistService = {
     });
     return response.data;
   },
+
+  // Get artist songs with pagination
+  getArtistSongs: async (
+    artistId: string,
+    page: number = 0,
+    sortBy: string = 'popularity',
+    sortOrder: string = 'desc'
+  ): Promise<any> => {
+    const response = await apiClient.get(`/artists/${artistId}/songs`, {
+      params: { page, sortBy, sortOrder }
+    });
+    return response.data;
+  },
+
+  // Get artist albums with pagination
+  getArtistAlbums: async (
+    artistId: string,
+    page: number = 0,
+    sortBy: string = 'popularity',
+    sortOrder: string = 'desc'
+  ): Promise<any> => {
+    const response = await apiClient.get(`/artists/${artistId}/albums`, {
+      params: { page, sortBy, sortOrder }
+    });
+    return response.data;
+  },
 };

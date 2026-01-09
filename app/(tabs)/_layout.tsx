@@ -6,6 +6,7 @@ import NavigationBar from '@/components/ui/NavigationBar';
 import NowPlayingScreen from '@/components/ui/NowPlayingScreen';
 import ProfileScreen from '@/components/ui/ProfileScreen';
 import SearchScreen from '@/components/ui/SearchScreen';
+import ArtistDetailScreen from '@/components/ui/ArtistDetailScreen';
 import { useAudioPlayerBackground } from '@/hooks/useAudioPlayerBackground';
 import { Song } from '@/types/searchSong';
 import React, { useState } from 'react';
@@ -30,6 +31,7 @@ function MainApp() {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState('home');
   const [showNowPlaying, setShowNowPlaying] = useState(false);
+  const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
   const audioPlayer = useAudioPlayerBackground();
 
   const handleSongPress = async (song: Song) => {
@@ -47,6 +49,55 @@ function MainApp() {
     setShowNowPlaying(false);
   };
 
+  const handleArtistPress = (artistId: string) => {
+    setSelectedArtistId(artistId);
+  };
+
+  const handleBackFromArtist = () => {
+    setSelectedArtistId(null);
+  };
+
+  // Show artist detail screen if an artist is selected
+  if (selectedArtistId) {
+    return (
+      <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => setSelectedArtistId(null)}>
+        <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+          <ArtistDetailScreen
+            artistId={selectedArtistId}
+            onBack={handleBackFromArtist}
+            onSongPress={handleSongPress}
+            onPlayQueue={handlePlayQueue}
+            currentTrack={audioPlayer.currentTrack}
+            isPlaying={audioPlayer.isPlaying}
+            onTogglePlayPause={audioPlayer.togglePlayPause}
+          />
+
+          {audioPlayer.currentTrack && (
+            <MiniPlayer
+              currentTrack={audioPlayer.currentTrack}
+              onExpand={() => setShowNowPlaying(true)}
+              isVisible={!showNowPlaying}
+              audioPlayer={audioPlayer}
+              onClose={handleCloseMiniPlayer}
+              onNext={audioPlayer.queue.length > 1 ? audioPlayer.playNext : undefined}
+              onPrevious={audioPlayer.currentIndex > 0 ? audioPlayer.playPrevious : undefined}
+            />
+          )}
+
+          {audioPlayer.currentTrack && (
+            <NowPlayingScreen
+              currentTrack={audioPlayer.currentTrack}
+              onMinimize={() => setShowNowPlaying(false)}
+              isVisible={showNowPlaying}
+              audioPlayer={audioPlayer}
+            />
+          )}
+          {!showNowPlaying && <NavigationBar activeTab={activeTab} onTabPress={setActiveTab} />}
+        </View>
+      </ErrorBoundary>
+    );
+  }
+
   const renderScreen = () => {
     switch (activeTab) {
       case 'home':
@@ -63,6 +114,7 @@ function MainApp() {
         return (
           <SearchScreen
             onSongPress={handleSongPress}
+            onArtistPress={handleArtistPress}
             currentTrack={audioPlayer.currentTrack}
             isPlaying={audioPlayer.isPlaying}
           />

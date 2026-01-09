@@ -33,13 +33,13 @@ import NowPlayingIndicator from './NowPlayingIndicator';
 
 interface SearchScreenProps {
   onSongPress: (song: Song) => void;
+  onArtistPress?: (artistId: string) => void;
   currentTrack?: Song | null;
   isPlaying?: boolean;
   // onAlbumPress: (album: AlbumSearchResult) => void;
-  // onArtistPress: (artist: ArtistSearchResult) => void;
 }
 
-export default function SearchScreen({ onSongPress, currentTrack, isPlaying /*, onAlbumPress, onArtistPress */ }: SearchScreenProps) {
+export default function SearchScreen({ onSongPress, onArtistPress, currentTrack, isPlaying /*, onAlbumPress */ }: SearchScreenProps) {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Songs');
@@ -178,7 +178,11 @@ export default function SearchScreen({ onSongPress, currentTrack, isPlaying /*, 
   );
 
   const renderArtistItem = ({ item }: { item: ArtistResult }) => (
-    <TouchableOpacity style={styles.resultItem} onPress={() => /* onArtistPress(item)*/ () => {}}>
+    <TouchableOpacity
+      style={styles.resultItem}
+      onPress={() => onArtistPress && onArtistPress(item.id)}
+      activeOpacity={0.7}
+    >
       <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.artistImage} />
       <View style={styles.resultInfo}>
         <Text style={styles.resultTitle} numberOfLines={1}>
@@ -229,7 +233,11 @@ export default function SearchScreen({ onSongPress, currentTrack, isPlaying /*, 
   );
 
   const renderGlobalArtistItem = ({ item }: { item: ArtistResult }) => (
-    <TouchableOpacity style={styles.resultItem} onPress={() => {/* TODO: Navigate to artist details */}}>
+    <TouchableOpacity
+      style={styles.resultItem}
+      onPress={() => onArtistPress && onArtistPress(item.id)}
+      activeOpacity={0.7}
+    >
       <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.artistImage} />
       <View style={styles.resultInfo}>
         <Text style={styles.resultTitle} numberOfLines={1}>

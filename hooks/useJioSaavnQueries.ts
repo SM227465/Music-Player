@@ -1,5 +1,5 @@
 // hooks/useJioSaavnQueries.ts
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { jioSaavnService } from '@/services/jiosaavn.service';
 import { artistService } from '@/services/artist.service';
 
@@ -59,6 +59,51 @@ export const useArtistDetails = (artistId: string, enabled: boolean = true) => {
     queryFn: () => artistService.getArtistDetails(artistId),
     enabled: enabled && !!artistId,
     staleTime: 1000 * 60 * 10, // 10 minutes
+  });
+};
+
+// Infinite scroll hooks for artist songs and albums
+export const useArtistSongsInfinite = (
+  artistId: string,
+  sortBy: string = 'popularity',
+  sortOrder: string = 'desc',
+  enabled: boolean = true
+) => {
+  return useInfiniteQuery({
+    queryKey: ['artistSongs', 'infinite', artistId, sortBy, sortOrder],
+    queryFn: ({ pageParam = 0 }) => artistService.getArtistSongs(artistId, pageParam, sortBy, sortOrder),
+    getNextPageParam: (lastPage, allPages) => {
+      const songs = lastPage.data?.songs || [];
+      const total = lastPage.data?.total || 0;
+      const currentCount = allPages.reduce((acc, page) => acc + (page.data?.songs?.length || 0), 0);
+      const hasMore = currentCount < total;
+      return hasMore ? allPages.length : undefined;
+    },
+    enabled: enabled && !!artistId,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    initialPageParam: 0,
+  });
+};
+
+export const useArtistAlbumsInfinite = (
+  artistId: string,
+  sortBy: string = 'popularity',
+  sortOrder: string = 'desc',
+  enabled: boolean = true
+) => {
+  return useInfiniteQuery({
+    queryKey: ['artistAlbums', 'infinite', artistId, sortBy, sortOrder],
+    queryFn: ({ pageParam = 0 }) => artistService.getArtistAlbums(artistId, pageParam, sortBy, sortOrder),
+    getNextPageParam: (lastPage, allPages) => {
+      const albums = lastPage.data?.albums || [];
+      const total = lastPage.data?.total || 0;
+      const currentCount = allPages.reduce((acc, page) => acc + (page.data?.albums?.length || 0), 0);
+      const hasMore = currentCount < total;
+      return hasMore ? allPages.length : undefined;
+    },
+    enabled: enabled && !!artistId,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    initialPageParam: 0,
   });
 };
 

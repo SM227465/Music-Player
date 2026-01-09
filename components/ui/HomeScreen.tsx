@@ -80,7 +80,14 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
   };
 
   const handlePlaylistPress = (playlistUrl: string) => {
+    // Convert the URL to use the API format
+    // The playlistUrl comes from charts/playlists and needs to be passed to the API
     setViewState({ mode: 'playlist', playlistUrl });
+  };
+
+  const handleChartPress = (chartUrl: string) => {
+    // Charts use the same playlist detail screen, just pass the URL
+    setViewState({ mode: 'playlist', playlistUrl: chartUrl });
   };
 
   const handleArtistPress = (artistId: string) => {
@@ -456,7 +463,7 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
                 <TouchableOpacity
                   key={chart.id}
                   style={[styles.chartCard, index === charts.slice(0, 10).length - 1 && { marginRight: spacing.xl }]}
-                  onPress={() => handlePlaylistPress(chart.url)}
+                  onPress={() => handleChartPress(chart.url)}
                   activeOpacity={0.7}
                 >
                   <View style={styles.releaseImageContainer}>
