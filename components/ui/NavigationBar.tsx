@@ -2,6 +2,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, spacing, fontSize, iconSize } from '@/constants/theme';
 
 interface NavigationBarProps {
@@ -11,6 +12,7 @@ interface NavigationBarProps {
 
 export default function NavigationBar({ activeTab, onTabPress }: NavigationBarProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   const tabs = [
     { key: 'home', label: 'Home', activeIcon: 'home', inactiveIcon: 'home-outline' },
@@ -24,7 +26,8 @@ export default function NavigationBar({ activeTab, onTabPress }: NavigationBarPr
       flexDirection: 'row',
       backgroundColor: theme.background.elevated,
       paddingHorizontal: spacing.xl,
-      paddingVertical: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: Math.max(insets.bottom, spacing.md),
       borderTopWidth: 1,
       borderTopColor: theme.border.primary,
       shadowColor: theme.shadow.color,

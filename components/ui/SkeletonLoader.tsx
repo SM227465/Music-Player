@@ -214,6 +214,67 @@ const styles = StyleSheet.create({
   },
 });
 
+export function ArtistDetailSkeleton() {
+  const theme = useTheme();
+
+  return (
+    <View style={[artistStyles.container, { backgroundColor: theme.background.primary }]}>
+      {/* Header Skeleton */}
+      <View style={artistStyles.header}>
+        <Skeleton width={40} height={40} borderRadius={borderRadius.full} />
+      </View>
+
+      {/* Artist Info Skeleton */}
+      <View style={artistStyles.artistInfo}>
+        <Skeleton width={160} height={160} borderRadius={borderRadius.full} style={{ marginBottom: spacing.lg }} />
+        <Skeleton width={200} height={32} style={{ marginBottom: spacing.xs }} />
+        <Skeleton width={120} height={16} style={{ marginBottom: spacing.md }} />
+
+        {/* Stats */}
+        <View style={artistStyles.statsContainer}>
+          <View style={artistStyles.statItem}>
+            <Skeleton width={50} height={24} style={{ marginBottom: spacing.xs }} />
+            <Skeleton width={60} height={14} />
+          </View>
+          <View style={artistStyles.statItem}>
+            <Skeleton width={50} height={24} style={{ marginBottom: spacing.xs }} />
+            <Skeleton width={60} height={14} />
+          </View>
+        </View>
+      </View>
+
+      {/* Bio Skeleton */}
+      <View style={artistStyles.bioContainer}>
+        <Skeleton width={80} height={20} style={{ marginBottom: spacing.md }} />
+        <Skeleton width="100%" height={14} style={{ marginBottom: spacing.xs }} />
+        <Skeleton width="100%" height={14} style={{ marginBottom: spacing.xs }} />
+        <Skeleton width="80%" height={14} style={{ marginBottom: spacing.xs }} />
+      </View>
+
+      {/* Top Songs Header */}
+      <View style={artistStyles.topSongsHeader}>
+        <Skeleton width={120} height={24} />
+        <Skeleton width={100} height={36} borderRadius={borderRadius.full} />
+      </View>
+
+      {/* Song List Skeleton */}
+      <View style={artistStyles.songListContainer}>
+        {Array.from({ length: 5 }).map((_, index) => (
+          <View key={index} style={artistStyles.songItem}>
+            <Skeleton width={32} height={14} style={{ marginRight: spacing.md }} />
+            <Skeleton width={48} height={48} borderRadius={borderRadius.sm} />
+            <View style={artistStyles.songDetails}>
+              <Skeleton width={180} height={14} style={{ marginBottom: spacing.xs }} />
+              <Skeleton width={120} height={12} />
+            </View>
+            <Skeleton width={36} height={36} borderRadius={borderRadius.full} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 const playlistStyles = StyleSheet.create({
   container: {
     flex: 1,
@@ -227,6 +288,54 @@ const playlistStyles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.lg,
+  },
+  songListContainer: {
+    flex: 1,
+    paddingHorizontal: spacing.xl,
+  },
+  songItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  songDetails: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+});
+
+const artistStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.lg,
+  },
+  artistInfo: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xl,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: spacing.xl,
+    marginTop: spacing.md,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  bioContainer: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.lg,
+  },
+  topSongsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
   },
   songListContainer: {
     flex: 1,

@@ -2,7 +2,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   StyleSheet,
@@ -16,6 +15,7 @@ import { useArtistDetails } from '@/hooks/useJioSaavnQueries';
 import { decodeHtmlEntities } from '../../utils/htmlDecode';
 import NowPlayingIndicator from './NowPlayingIndicator';
 import { TopSong } from '@/types/artistDetails';
+import { ArtistDetailSkeleton } from './SkeletonLoader';
 
 interface ArtistDetailScreenProps {
   artistId: string;
@@ -47,7 +47,6 @@ export default function ArtistDetailScreen({
       flex: 1,
     },
     header: {
-      paddingHorizontal: spacing.xl,
       paddingBottom: spacing.lg,
     },
     backButton: {
@@ -90,7 +89,6 @@ export default function ArtistDetailScreen({
     },
     artistInfo: {
       alignItems: 'center',
-      paddingHorizontal: spacing.xl,
       paddingBottom: spacing.xl,
     },
     artistImage: {
@@ -136,7 +134,6 @@ export default function ArtistDetailScreen({
       marginTop: spacing.xs,
     },
     bioContainer: {
-      paddingHorizontal: spacing.xl,
       paddingBottom: spacing.lg,
     },
     bioTitle: {
@@ -162,7 +159,6 @@ export default function ArtistDetailScreen({
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: spacing.xl,
       paddingVertical: spacing.lg,
     },
     topSongsTitle: {
@@ -350,19 +346,7 @@ export default function ArtistDetailScreen({
   };
 
   if (isLoading) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
-        <View style={[styles.header, { paddingTop: 60 }]}>
-          <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Ionicons name='arrow-back' size={iconSize.md} color={theme.text.primary} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color={theme.accent.primary} />
-          <Text style={[styles.loadingText, { color: theme.text.secondary }]}>Loading artist...</Text>
-        </View>
-      </View>
-    );
+    return <ArtistDetailSkeleton />;
   }
 
   if (isError || !artist) {
@@ -395,7 +379,7 @@ export default function ArtistDetailScreen({
         data={artist.topSongs}
         renderItem={renderSongItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: spacing.xl }}
         ListHeaderComponent={
           <>
             <View style={[styles.header, { paddingTop: 60 }]}>

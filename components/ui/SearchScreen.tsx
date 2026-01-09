@@ -130,9 +130,9 @@ export default function SearchScreen({ onSongPress, currentTrack, isPlaying /*, 
       <TouchableOpacity style={styles.resultItem} onPress={() => onSongPress(item)}>
         <View style={styles.imageContainer}>
           <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.resultImage} />
-          {isPlayingNow && (
+          {currentTrack?.id === item.id && (
             <View style={styles.playingOverlay}>
-              <NowPlayingIndicator isPlaying={true} />
+              <NowPlayingIndicator isPlaying={!!isPlaying} />
             </View>
           )}
         </View>

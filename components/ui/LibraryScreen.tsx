@@ -26,6 +26,7 @@ export default function LibraryScreen() {
   const [playlistName, setPlaylistName] = useState('');
   const [playlistDescription, setPlaylistDescription] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
 
   const { favorites, loading: favoritesLoading, refresh: refreshFavorites } = useFavorites();
   const { playlists, createPlaylist, deletePlaylist, loading: playlistsLoading, refresh: refreshPlaylists } = usePlaylists();
@@ -519,7 +520,11 @@ export default function LibraryScreen() {
         }
       >
         {playlists.map((playlist) => (
-          <TouchableOpacity key={playlist.id} style={styles.playlistItem}>
+          <TouchableOpacity
+            key={playlist.id}
+            style={styles.playlistItem}
+            onPress={() => setSelectedPlaylistId(playlist.id)}
+          >
             <View style={styles.playlistImageContainer}>
               {playlist.songs.length > 0 && getImageUrl(playlist.songs[0].image) ? (
                 <Image source={{ uri: getImageUrl(playlist.songs[0].image) || '' }} style={styles.playlistImage} />
@@ -703,6 +708,56 @@ export default function LibraryScreen() {
       </ScrollView>
     );
   };
+
+  // Get selected playlist
+  const selectedPlaylist = playlists.find(p => p.id === selectedPlaylistId);
+
+  // If a playlist is selected, show playlist songs
+  if (selectedPlaylist) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+        {/* Header with Back Button */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setSelectedPlaylistId(null)} style={{ marginRight: spacing.lg }}>
+            <Ionicons name='arrow-back' size={iconSize.lg} color={theme.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {selectedPlaylist.name}
+          </Text>
+        </View>
+
+        {/* Playlist Info */}
+        <View style={styles.listContainer}>
+          <View style={styles.listHeader}>
+            {selectedPlaylist.description && (
+              <Text style={styles.playlistDescription}>{selectedPlaylist.description}</Text>
+            )}
+            <Text style={styles.listSubtitle}>
+              {selectedPlaylist.songs.length} songs
+              {selectedPlaylist.songs.length > 0 && ` • ${getTotalDuration(selectedPlaylist.songs)}`}
+            </Text>
+          </View>
+
+          {/* Songs List */}
+          {selectedPlaylist.songs.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name='musical-notes-outline' size={64} color={theme.text.tertiary} />
+              <Text style={styles.emptyStateTitle}>No songs in playlist</Text>
+              <Text style={styles.emptyStateText}>Add songs to this playlist</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={selectedPlaylist.songs}
+              renderItem={renderSongItem}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
+            />
+          )}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background.primary }]}>

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type AudioPlayerType = ReturnType<typeof useAudioPlayerBackground>;
 
@@ -30,6 +31,7 @@ export default function MiniPlayer({
 }: MiniPlayerProps) {
   const theme = useTheme();
   const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
   const { togglePlayPause, getProgress, position, duration, formatTime, isPlaying } = audioPlayer;
 
   if (!isVisible) return null;
@@ -55,10 +57,15 @@ export default function MiniPlayer({
 
   const progress = getProgress();
 
+  // Calculate bottom position: navigation bar height + safe area bottom + spacing
+  // Navigation bar height = paddingTop (spacing.md) + content (~40px) + paddingBottom (Math.max(insets.bottom, spacing.md))
+  // Total = 16 + 40 + Math.max(insets.bottom, 16) + 16 (extra spacing)
+  const navigationBarHeight = 72 + Math.max(insets.bottom, spacing.md);
+
   const styles = StyleSheet.create({
     container: {
       position: 'absolute',
-      bottom: 90,
+      bottom: navigationBarHeight,
       left: spacing.lg,
       right: spacing.lg,
       zIndex: 999,

@@ -4,11 +4,14 @@ import React from 'react';
 import {
   FlatList,
   Image,
+  ImageBackground,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 import { Song } from '@/types/searchSong';
 import { usePlaylistDetails } from '@/hooks/useJioSaavnQueries';
@@ -29,6 +32,7 @@ interface PlaylistDetailScreenProps {
 
 export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress, onPlayQueue, currentTrack, isPlaying, onTogglePlayPause }: PlaylistDetailScreenProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { data: playlist, isLoading: loading, isError: error, refetch } = usePlaylistDetails(playlistUrl);
 
   const getImageUrl = (images: Array<{ quality: string; url: string }>, quality: string = '500x500') => {
@@ -120,56 +124,67 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
       flex: 1,
     },
     header: {
-      paddingTop: 60,
+      height: 220 + Math.max(insets.top, 40),
+      position: 'relative',
+    },
+    headerBackground: {
+      width: '100%',
+      height: '100%',
+    },
+    headerGradient: {
+      flex: 1,
+      justifyContent: 'space-between',
+      paddingTop: Math.max(insets.top, 40) + spacing.md,
       paddingHorizontal: spacing.xl,
-      paddingBottom: spacing.sm,
+      paddingBottom: spacing.lg,
     },
     backButton: {
       width: iconSize.xl,
       height: iconSize.xl,
       borderRadius: borderRadius.full,
-      backgroundColor: theme.card.background,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: spacing.md,
-      borderWidth: 1,
-      borderColor: theme.border.primary,
+      alignSelf: 'flex-start',
     },
     playlistInfo: {
-      alignItems: 'center',
-      paddingBottom: spacing.md,
+      justifyContent: 'flex-end',
     },
     playlistImage: {
-      width: 140,
-      height: 140,
-      borderRadius: borderRadius.lg,
-      marginBottom: spacing.md,
-      backgroundColor: theme.card.background,
-      shadowColor: theme.shadow.color,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: theme.shadow.opacity,
-      shadowRadius: 8,
-      elevation: 4,
+      width: 0,
+      height: 0,
     },
     playlistName: {
-      fontSize: fontSize.xl,
+      fontSize: fontSize.xxl,
       fontWeight: fontWeight.bold,
-      color: theme.text.primary,
-      textAlign: 'center',
+      color: '#FFFFFF',
       marginBottom: spacing.xs,
-      paddingHorizontal: spacing.lg,
+      textShadowColor: 'rgba(0, 0, 0, 0.75)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 4,
     },
     playlistDescription: {
-      fontSize: fontSize.xs,
-      color: theme.text.secondary,
-      textAlign: 'center',
+      fontSize: fontSize.sm,
+      color: '#FFFFFF',
       marginBottom: spacing.xs,
-      paddingHorizontal: spacing.lg,
+      opacity: 0.9,
+      textShadowColor: 'rgba(0, 0, 0, 0.75)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 3,
     },
     playlistMeta: {
-      fontSize: fontSize.xs,
-      color: theme.text.tertiary,
-      textAlign: 'center',
+      fontSize: fontSize.sm,
+      color: '#FFFFFF',
+      opacity: 0.8,
+      textShadowColor: 'rgba(0, 0, 0, 0.75)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 3,
+    },
+    playAllButtonContainer: {
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border.primary,
     },
     playAllButton: {
       flexDirection: 'row',
@@ -179,7 +194,6 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
       paddingHorizontal: spacing.xl,
       paddingVertical: spacing.md,
       borderRadius: borderRadius.full,
-      marginTop: spacing.md,
       shadowColor: theme.accent.primary,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
@@ -326,27 +340,35 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
   return (
     <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Ionicons name='arrow-back' size={iconSize.md} color={theme.text.primary} />
+        <ImageBackground
+          source={{ uri: getImageUrl(playlist.image, '500x500') }}
+          style={styles.headerBackground}
+          resizeMode='cover'
+        >
+          <LinearGradient
+            colors={['rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.7)']}
+            style={styles.headerGradient}
+          >
+            <TouchableOpacity style={styles.backButton} onPress={onBack}>
+              <Ionicons name='arrow-back' size={iconSize.md} color='#FFFFFF' />
+            </TouchableOpacity>
+
+            <View style={styles.playlistInfo}>
+              <Text style={styles.playlistName}>{decodeHtmlEntities(playlist.name)}</Text>
+              {playlist.description && (
+                <Text style={styles.playlistDescription}>{decodeHtmlEntities(playlist.description)}</Text>
+              )}
+              <Text style={styles.playlistMeta}>{playlist.songCount} songs</Text>
+            </View>
+          </LinearGradient>
+        </ImageBackground>
+      </View>
+
+      <View style={styles.playAllButtonContainer}>
+        <TouchableOpacity style={styles.playAllButton} onPress={handlePlayAll}>
+          <Ionicons name='play' size={iconSize.md} color={theme.text.inverse} />
+          <Text style={styles.playAllText}>Play All</Text>
         </TouchableOpacity>
-
-        <View style={styles.playlistInfo}>
-          <Image
-            source={{ uri: getImageUrl(playlist.image) }}
-            style={styles.playlistImage}
-            resizeMode='cover'
-          />
-          <Text style={styles.playlistName}>{decodeHtmlEntities(playlist.name)}</Text>
-          {playlist.description && (
-            <Text style={styles.playlistDescription}>{decodeHtmlEntities(playlist.description)}</Text>
-          )}
-          <Text style={styles.playlistMeta}>{playlist.songCount} songs</Text>
-
-          <TouchableOpacity style={styles.playAllButton} onPress={handlePlayAll}>
-            <Ionicons name='play' size={iconSize.md} color={theme.text.inverse} />
-            <Text style={styles.playAllText}>Play All</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       <View style={styles.songsList}>
