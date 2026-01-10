@@ -42,7 +42,7 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
   const [selectedSongId, setSelectedSongId] = useState<string>('');
 
   // Use React Query hooks
-  const { newReleases, playlists, charts, artists, isLoading, refetch } = useHomeData();
+  const { allModules, isLoading, refetch } = useHomeData();
   const { data: songDetails, isSuccess, isError, isLoading: isFetchingSong } = useSongDetails(selectedSongId);
   const { followedArtists } = useFollowedArtists();
 
@@ -102,6 +102,152 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
 
   const handleBackToHome = () => {
     setViewState({ mode: 'home' });
+  };
+
+  // Render items based on type
+  const renderModuleItem = (item: any, index: number, totalLength: number, moduleKey: string) => {
+    const isLast = index === totalLength - 1;
+
+    // Check if ID is numeric only (disable interaction for numeric IDs in new_trending and new_albums)
+    const isRestrictedSection = moduleKey === 'new_trending' || moduleKey === 'new_albums';
+    const isNumericId = isRestrictedSection && /^\d+$/.test(item.id);
+
+    // Handle songs
+    if (item.type === 'song') {
+      return (
+        <TouchableOpacity
+          key={`${item.id}-${index}`}
+          style={[styles.releaseCard, isLast && { marginRight: spacing.xl }]}
+          onPress={() => !isNumericId && handleNewReleasePress(item.id)}
+          activeOpacity={isNumericId ? 1 : 0.7}
+          disabled={isNumericId}
+        >
+          <View style={styles.releaseImageContainer}>
+            <Image
+              source={{ uri: getImageUrl(item.image) }}
+              style={[styles.releaseImage, isNumericId && { opacity: 0.6 }]}
+              resizeMode='cover'
+            />
+            {!isNumericId && (
+              <TouchableOpacity
+                style={styles.playButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleNewReleasePress(item.id);
+                }}
+              >
+                <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <Text style={[styles.releaseTitle, isNumericId && { opacity: 0.6 }]} numberOfLines={1}>
+            {decodeHtmlEntities(item.title || item.name)}
+          </Text>
+          {(item.subtitle || item.followers) && (
+            <Text style={[styles.releaseSubtitle, isNumericId && { opacity: 0.6 }]} numberOfLines={1}>
+              {decodeHtmlEntities(item.subtitle || item.followers)}
+            </Text>
+          )}
+        </TouchableOpacity>
+      );
+    }
+
+    // Handle albums
+    if (item.type === 'album') {
+      return (
+        <TouchableOpacity
+          key={`${item.id}-${index}`}
+          style={[styles.releaseCard, isLast && { marginRight: spacing.xl }]}
+          onPress={() => !isNumericId && handleNewReleasePress(item.id)}
+          activeOpacity={isNumericId ? 1 : 0.7}
+          disabled={isNumericId}
+        >
+          <View style={styles.releaseImageContainer}>
+            <Image
+              source={{ uri: getImageUrl(item.image) }}
+              style={[styles.releaseImage, isNumericId && { opacity: 0.6 }]}
+              resizeMode='cover'
+            />
+            {!isNumericId && (
+              <TouchableOpacity
+                style={styles.playButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleNewReleasePress(item.id);
+                }}
+              >
+                <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <Text style={[styles.releaseTitle, isNumericId && { opacity: 0.6 }]} numberOfLines={1}>
+            {decodeHtmlEntities(item.title)}
+          </Text>
+          {item.subtitle && (
+            <Text style={[styles.releaseSubtitle, isNumericId && { opacity: 0.6 }]} numberOfLines={1}>
+              {decodeHtmlEntities(item.subtitle)}
+            </Text>
+          )}
+        </TouchableOpacity>
+      );
+    }
+
+    // Handle playlists
+    if (item.type === 'playlist') {
+      return (
+        <TouchableOpacity
+          key={item.id}
+          style={[styles.playlistCard, isLast && { marginRight: spacing.xl }]}
+          onPress={() => !isNumericId && handlePlaylistPress(item.url)}
+          activeOpacity={isNumericId ? 1 : 0.7}
+          disabled={isNumericId}
+        >
+          <View style={styles.releaseImageContainer}>
+            <Image
+              source={{ uri: getImageUrl(item.image) }}
+              style={[styles.playlistImage, isNumericId && { opacity: 0.6 }]}
+              resizeMode='cover'
+            />
+            {!isNumericId && (
+              <TouchableOpacity style={styles.playButton} onPress={() => handlePlaylistPress(item.url)}>
+                <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <Text style={[styles.playlistTitle, isNumericId && { opacity: 0.6 }]} numberOfLines={2}>
+            {decodeHtmlEntities(item.title)}
+          </Text>
+          {item.followers && (
+            <Text style={[styles.playlistFollowers, isNumericId && { opacity: 0.6 }]}>{item.followers}</Text>
+          )}
+        </TouchableOpacity>
+      );
+    }
+
+    // Handle artists (fallback to default rendering if not in followed section)
+    if (item.type === 'artist') {
+      return (
+        <TouchableOpacity
+          key={item.id}
+          style={[styles.artistCard, isLast && { marginRight: spacing.xl }]}
+          onPress={() => !isNumericId && handleArtistPress(item.id)}
+          activeOpacity={isNumericId ? 1 : 0.7}
+          disabled={isNumericId}
+        >
+          <Image
+            source={{ uri: getImageUrl(item.image) }}
+            style={[styles.artistImage, isNumericId && { opacity: 0.6 }]}
+            resizeMode='cover'
+          />
+          <Text style={[styles.artistName, isNumericId && { opacity: 0.6 }]} numberOfLines={1}>
+            {decodeHtmlEntities(item.name)}
+          </Text>
+        </TouchableOpacity>
+      );
+    }
+
+    // Default fallback
+    return null;
   };
 
   // Import components dynamically
@@ -195,7 +341,7 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
       paddingLeft: spacing.xl,
     },
     releaseCard: {
-      width: 160,
+      width: 150,
       marginRight: spacing.lg,
     },
     releaseImageContainer: {
@@ -203,8 +349,8 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
       marginBottom: spacing.sm,
     },
     releaseImage: {
-      width: 160,
-      height: 160,
+      width: 150,
+      height: 150,
       borderRadius: borderRadius.lg,
       backgroundColor: theme.card.background,
     },
@@ -235,12 +381,12 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
       color: theme.text.secondary,
     },
     playlistCard: {
-      width: 180,
+      width: 150,
       marginRight: spacing.lg,
     },
     playlistImage: {
-      width: 180,
-      height: 180,
+      width: 150,
+      height: 150,
       borderRadius: borderRadius.lg,
       marginBottom: spacing.sm,
       backgroundColor: theme.card.background,
@@ -256,12 +402,12 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
       color: theme.text.tertiary,
     },
     chartCard: {
-      width: 140,
+      width: 150,
       marginRight: spacing.lg,
     },
     chartImage: {
-      width: 140,
-      height: 140,
+      width: 150,
+      height: 150,
       borderRadius: borderRadius.md,
       marginBottom: spacing.sm,
       backgroundColor: theme.card.background,
@@ -275,10 +421,11 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
     artistCard: {
       alignItems: 'center',
       marginRight: spacing.lg,
+      width: 150,
     },
     artistImage: {
-      width: 120,
-      height: 120,
+      width: 150,
+      height: 150,
       borderRadius: borderRadius.full,
       marginBottom: spacing.sm,
       borderWidth: 3,
@@ -354,177 +501,53 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
           />
         }
       >
-        {/* New Releases */}
-        {newReleases.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>New Releases</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContainer}
-              nestedScrollEnabled={true}
-            >
-              {newReleases.slice(0, 10).map((release, index) => (
-                <TouchableOpacity
-                  key={`${release.id}-${index}`}
-                  style={[
-                    styles.releaseCard,
-                    index === newReleases.slice(0, 10).length - 1 && { marginRight: spacing.xl },
-                  ]}
-                  onPress={() => handleNewReleasePress(release.id)}
-                  activeOpacity={0.7}
+        {/* Render all modules dynamically */}
+        {allModules
+          .filter((module) => {
+            // Filter out empty modules
+            if (!module.items || module.items.length === 0) return false;
+
+            // Normalize strings by removing all spaces, underscores, hyphens, and special characters
+            const normalize = (str: string) =>
+              str.toLowerCase().replace(/[_\s\-'']/g, '');
+
+            const moduleKeyNormalized = normalize(module.key);
+            const moduleTitleNormalized = normalize(module.title);
+
+            // Filter out specific unwanted sections (normalized)
+            const unwantedSections = [
+              'trendingpodcasts',
+              'radiostations',
+              'whatshotinsingapore',
+              'singapore',
+              'whatshot'
+            ];
+
+            // Check if module key or title matches any unwanted section
+            return !unwantedSections.some(unwanted =>
+              moduleKeyNormalized.includes(unwanted) ||
+              moduleTitleNormalized.includes(unwanted)
+            );
+          })
+          .map((module, moduleIndex) => {
+            return (
+              <View key={`${module.key}-${moduleIndex}`} style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>{module.title}</Text>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.scrollContainer}
+                  nestedScrollEnabled={true}
                 >
-                  <View style={styles.releaseImageContainer}>
-                    <Image
-                      source={{ uri: getImageUrl(release.image) }}
-                      style={styles.releaseImage}
-                      resizeMode='cover'
-                    />
-                    <TouchableOpacity
-                      style={styles.playButton}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        handleNewReleasePress(release.id);
-                      }}
-                    >
-                      <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.releaseTitle} numberOfLines={1}>
-                    {decodeHtmlEntities(release.title)}
-                  </Text>
-                  {release.subtitle && (
-                    <Text style={styles.releaseSubtitle} numberOfLines={1}>
-                      {decodeHtmlEntities(release.subtitle)}
-                    </Text>
+                  {module.items.slice(0, 20).map((item, index) =>
+                    renderModuleItem(item, index, Math.min(module.items.length, 20), module.key)
                   )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Top Playlists */}
-        {playlists.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Top Playlists</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContainer}
-              nestedScrollEnabled={true}
-            >
-              {playlists.slice(0, 10).map((playlist, index) => (
-                <TouchableOpacity
-                  key={playlist.id}
-                  style={[
-                    styles.playlistCard,
-                    index === playlists.slice(0, 10).length - 1 && { marginRight: spacing.xl },
-                  ]}
-                  onPress={() => handlePlaylistPress(playlist.url)}
-                >
-                  <View style={styles.releaseImageContainer}>
-                    <Image
-                      source={{ uri: getImageUrl(playlist.image) }}
-                      style={styles.playlistImage}
-                      resizeMode='cover'
-                    />
-                    <TouchableOpacity style={styles.playButton} onPress={() => handlePlaylistPress(playlist.url)}>
-                      <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.playlistTitle} numberOfLines={2}>
-                    {decodeHtmlEntities(playlist.title)}
-                  </Text>
-                  {playlist.followers && (
-                    <Text style={styles.playlistFollowers}>{playlist.followers}</Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Top Charts */}
-        {charts.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Top Charts</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContainer}
-              nestedScrollEnabled={true}
-            >
-              {charts.slice(0, 10).map((chart, index) => (
-                <TouchableOpacity
-                  key={chart.id}
-                  style={[styles.chartCard, index === charts.slice(0, 10).length - 1 && { marginRight: spacing.xl }]}
-                  onPress={() => handleChartPress(chart.url)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.releaseImageContainer}>
-                    <Image
-                      source={{ uri: getImageUrl(chart.image) }}
-                      style={styles.chartImage}
-                      resizeMode='cover'
-                    />
-                    <TouchableOpacity
-                      style={styles.playButton}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        handlePlaylistPress(chart.url);
-                      }}
-                    >
-                      <Ionicons name='play' size={iconSize.sm} color={theme.text.inverse} />
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.chartTitle} numberOfLines={2}>
-                    {decodeHtmlEntities(chart.title)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Top Artists */}
-        {artists.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Top Artists</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContainer}
-              nestedScrollEnabled={true}
-            >
-              {artists.slice(0, 10).map((artist, index) => (
-                <TouchableOpacity
-                  key={artist.id}
-                  style={[styles.artistCard, index === artists.slice(0, 10).length - 1 && { marginRight: spacing.xl }]}
-                  onPress={() => handleArtistPress(artist.id)}
-                  activeOpacity={0.7}
-                >
-                  <Image
-                    source={{ uri: getImageUrl(artist.image) }}
-                    style={styles.artistImage}
-                    resizeMode='cover'
-                  />
-                  <Text style={styles.artistName} numberOfLines={1}>
-                    {decodeHtmlEntities(artist.name)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
+                </ScrollView>
+              </View>
+            );
+          })}
 
         {/* Followed Artists */}
         {followedArtists.length > 0 && (

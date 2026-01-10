@@ -1,7 +1,7 @@
 // hooks/useJioSaavnQueries.ts
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { jioSaavnService } from '@/services/jiosaavn.service';
 import { artistService } from '@/services/artist.service';
+import { jioSaavnService } from '@/services/jiosaavn.service';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 export const useNewReleases = () => {
   return useQuery({
@@ -38,9 +38,25 @@ export const useTopArtists = () => {
 export const usePlaylistDetails = (playlistUrl: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: ['playlistDetails', playlistUrl],
-    queryFn: () => jioSaavnService.getPlaylistDetails(playlistUrl),
+    queryFn: () => jioSaavnService.getPlaylistDetails(playlistUrl, 0, 1000),
     enabled: enabled && !!playlistUrl,
     staleTime: 1000 * 60 * 10, // 10 minutes
+  });
+};
+
+export const usePlaylistDetailsInfinite = (playlistUrl: string, enabled: boolean = true) => {
+  return useInfiniteQuery({
+    queryKey: ['playlistDetails', 'infinite', playlistUrl],
+    queryFn: ({ pageParam = 0 }) => jioSaavnService.getPlaylistDetails(playlistUrl, pageParam, 50),
+    getNextPageParam: (lastPage, allPages) => {
+      const total = lastPage?.songCount || 0;
+      const currentCount = allPages.reduce((acc, page) => acc + (page?.songs?.length || 0), 0);
+      const hasMore = currentCount < total;
+      return hasMore ? allPages.length : undefined;
+    },
+    enabled: enabled && !!playlistUrl,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    initialPageParam: 0,
   });
 };
 
@@ -107,26 +123,27 @@ export const useArtistAlbumsInfinite = (
   });
 };
 
-// Hook for fetching all home data at once
+// Hook for fetching homepage data (new unified endpoint)
+export const useHomepage = () => {
+  return useQuery({
+    queryKey: ['homepage'],
+    queryFn: () => jioSaavnService.getHomepage(),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+// Hook for fetching all home data at once (using new unified homepage endpoint)
 export const useHomeData = () => {
-  const newReleases = useNewReleases();
-  const topPlaylists = useTopPlaylists();
-  const topCharts = useTopCharts();
-  const topArtists = useTopArtists();
+  const homepage = useHomepage();
 
   return {
-    newReleases: newReleases.data || [],
-    playlists: topPlaylists.data || [],
-    charts: topCharts.data || [],
-    artists: topArtists.data || [],
-    isLoading:
-      newReleases.isLoading || topPlaylists.isLoading || topCharts.isLoading || topArtists.isLoading,
-    isError: newReleases.isError || topPlaylists.isError || topCharts.isError || topArtists.isError,
-    refetch: () => {
-      newReleases.refetch();
-      topPlaylists.refetch();
-      topCharts.refetch();
-      topArtists.refetch();
-    },
+    allModules: homepage.data?.allModules || [],
+    trendingNow: homepage.data?.trendingNow || [],
+    topCharts: homepage.data?.topCharts || [],
+    newReleases: homepage.data?.newReleases || [],
+    editorialPicks: homepage.data?.editorialPicks || [],
+    isLoading: homepage.isLoading,
+    isError: homepage.isError,
+    refetch: homepage.refetch,
   };
 };

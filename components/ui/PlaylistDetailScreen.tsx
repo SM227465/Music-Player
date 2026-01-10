@@ -1,7 +1,12 @@
 // components/ui/PlaylistDetailScreen.tsx
+import { borderRadius, fontSize, fontWeight, iconSize, spacing, useTheme } from '@/constants/theme';
+import { usePlaylistDetailsInfinite } from '@/hooks/useJioSaavnQueries';
+import { Song } from '@/types/searchSong';
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useMemo } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   ImageBackground,
@@ -10,14 +15,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
-import { Song } from '@/types/searchSong';
-import { usePlaylistDetails } from '@/hooks/useJioSaavnQueries';
-import { PlaylistDetailSkeleton } from './SkeletonLoader';
-import NowPlayingIndicator from './NowPlayingIndicator';
 import { decodeHtmlEntities } from '../../utils/htmlDecode';
+import NowPlayingIndicator from './NowPlayingIndicator';
+import { PlaylistDetailSkeleton } from './SkeletonLoader';
 
 interface PlaylistDetailScreenProps {
   playlistUrl: string;
@@ -33,8 +34,31 @@ interface PlaylistDetailScreenProps {
 export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress, onPlayQueue, currentTrack, isPlaying, onTogglePlayPause }: PlaylistDetailScreenProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { data: playlist, isLoading: loading, isError: error, refetch } = usePlaylistDetails(playlistUrl);
+  const {
+    data,
+    isLoading: loading,
+    isError: error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = usePlaylistDetailsInfinite(playlistUrl);
 
+  // Flatten all songs from all pages
+  const allSongs = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap((page) => page?.songs || []);
+  }, [data]);
+
+  // Get playlist metadata from first page
+  const playlist = useMemo(() => {
+    if (!data?.pages?.[0]) return null;
+    return {
+      ...data.pages[0],
+      songs: allSongs,
+    };
+  }, [data, allSongs]);
+  
   const getImageUrl = (images: Array<{ quality: string; url: string }>, quality: string = '500x500') => {
     const image = images.find((img) => img.quality === quality) || images[0];
     return image?.url || '';
@@ -65,6 +89,12 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
         // Fallback to playing just the first song
         onSongPress(playlist.songs[0]);
       }
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
   };
 
@@ -116,6 +146,17 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
           />
         </TouchableOpacity>
       </TouchableOpacity>
+    );
+  };
+
+  const renderFooter = () => {
+    if (!isFetchingNextPage) return <View style={styles.listFooter} />;
+
+    return (
+      <View style={styles.loadingFooter}>
+        <ActivityIndicator size="small" color={theme.accent.primary} />
+        <Text style={styles.loadingText}>Loading more songs...</Text>
+      </View>
     );
   };
 
@@ -312,6 +353,16 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
     listFooter: {
       height: 100,
     },
+    loadingFooter: {
+      paddingVertical: spacing.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    loadingText: {
+      marginTop: spacing.sm,
+      fontSize: fontSize.sm,
+      color: theme.text.secondary,
+    },
   });
 
   if (loading) {
@@ -382,7 +433,9 @@ export default function PlaylistDetailScreen({ playlistUrl, onBack, onSongPress,
           renderItem={renderSongItem}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          ListFooterComponent={<View style={styles.listFooter} />}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
         />
       </View>
     </View>

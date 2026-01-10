@@ -102,10 +102,58 @@ class JioSaavnService {
     }
   }
 
-  async getPlaylistDetails(playlistUrl: string): Promise<any> {
+  async getHomepage(): Promise<{
+    trendingNow: any[];
+    topCharts: any[];
+    newReleases: any[];
+    editorialPicks: any[];
+    trendingPodcasts: any[];
+    freshHits: any[];
+    topGenresMoods: any[];
+    bestOf90s: any[];
+    newReleasesPop: any[];
+    allModules: Array<{
+      key: string;
+      title: string;
+      subtitle: any[];
+      items: any[];
+    }>;
+  }> {
+    try {
+      const response = await fetch(`${BASE_URL}/homepage`);
+      const data: ApiResponse<{
+        trendingNow: any[];
+        topCharts: any[];
+        newReleases: any[];
+        editorialPicks: any[];
+        trendingPodcasts: any[];
+        freshHits: any[];
+        topGenresMoods: any[];
+        bestOf90s: any[];
+        newReleasesPop: any[];
+        allModules: Array<{
+          key: string;
+          title: string;
+          subtitle: any[];
+          items: any[];
+        }>;
+      }> = await response.json();
+
+      if (data.success) {
+        return data.data;
+      }
+      throw new Error('Failed to fetch homepage data');
+    } catch (error) {
+      console.error('Error fetching homepage data:', error);
+      throw error;
+    }
+  }
+
+  async getPlaylistDetails(playlistUrl: string, page: number = 0, limit: number = 50): Promise<any> {
+    `${SUMIT_API_URL}/playlists?link=${encodeURIComponent(playlistUrl)}&page=${page}&limit=${limit}`
     try {
       const response = await fetch(
-        `${SUMIT_API_URL}/playlists?link=${encodeURIComponent(playlistUrl)}`
+        `${SUMIT_API_URL}/playlists?link=${encodeURIComponent(playlistUrl)}&page=${page}&limit=${limit}`
       );
       const data: ApiResponse<any> = await response.json();
 
