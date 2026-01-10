@@ -1,4 +1,4 @@
-package com.anonymous.musicapp
+package com.anonymous.melodify
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "music-app",
+    "name": "Melodify",
     "slug": "music-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "musicapp",
+    "scheme": "melodify",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -16,7 +16,7 @@
           "audio"
         ]
       },
-      "bundleIdentifier": "com.anonymous.musicapp"
+      "bundleIdentifier": "com.anonymous.melodify"
     },
     "android": {
       "adaptiveIcon": {
@@ -31,7 +31,7 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.POST_NOTIFICATIONS"
       ],
-      "package": "com.anonymous.musicapp"
+      "package": "com.anonymous.melodify"
     },
     "web": {
       "bundler": "metro",
@@ -45,6 +45,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-splash-screen",
       [
         "expo-audio",
         {
@@ -63,6 +64,7 @@
       "eas": {
         "projectId": "c6ddad05-60d7-4aa2-a2c1-03467bc7d8a1"
       }
-    }
+    },
+    "owner": "raizojr"
   }
 }

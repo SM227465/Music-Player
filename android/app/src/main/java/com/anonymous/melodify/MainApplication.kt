@@ -1,4 +1,4 @@
-package com.anonymous.musicapp
+package com.anonymous.melodify
 
 import android.app.Application
 import android.content.res.Configuration

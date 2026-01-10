@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>music-app</string>
+    <string>Melodify</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -27,8 +27,8 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>musicapp</string>
-          <string>com.anonymous.musicapp</string>
+          <string>melodify</string>
+          <string>com.anonymous.melodify</string>
         </array>
       </dict>
     </array>
