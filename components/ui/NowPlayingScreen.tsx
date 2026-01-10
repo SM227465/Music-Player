@@ -40,6 +40,7 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [isSliding, setIsSliding] = useState(false);
   const slideAnim = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
+  const volumeHideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const {
     getProgress,
     playAudio,
@@ -56,7 +57,8 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
     playNext,
     playPrevious,
     removeFromQueue,
-    clearQueue
+    clearQueue,
+    setVolume: setAudioVolume
   } = audioPlayer;
   const progress = getProgress() / 100;
   const hasNext = currentIndex < queue.length - 1;
@@ -81,6 +83,28 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
       }).start();
     }
   }, [isVisible]);
+
+  // Auto-hide volume slider after 3 seconds of inactivity
+  useEffect(() => {
+    if (showVolumeSlider) {
+      if (volumeHideTimerRef.current) {
+        clearTimeout(volumeHideTimerRef.current);
+      }
+      volumeHideTimerRef.current = setTimeout(() => {
+        setShowVolumeSlider(false);
+      }, 3000);
+    }
+    return () => {
+      if (volumeHideTimerRef.current) {
+        clearTimeout(volumeHideTimerRef.current);
+      }
+    };
+  }, [showVolumeSlider, volume]);
+
+  const handleVolumeChange = useCallback((value: number) => {
+    setVolume(value);
+    setAudioVolume(value);
+  }, [setAudioVolume]);
 
   const getHighestQualityAudioUrl = useCallback((downloadUrls: any[]) => {
     if (!downloadUrls || downloadUrls.length === 0) return null;
@@ -399,15 +423,18 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
       fontWeight: fontWeight.bold,
     },
     volumeContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
       paddingHorizontal: spacing.xl,
       paddingVertical: spacing.md,
       backgroundColor: theme.card.background,
       borderRadius: borderRadius.lg,
       marginHorizontal: spacing.xl,
       marginBottom: spacing.lg,
+      gap: spacing.md,
     },
     volumeSlider: {
-      width: '100%',
+      flex: 1,
       height: 40,
     },
   });
@@ -564,16 +591,18 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
         {/* Volume Slider */}
         {showVolumeSlider && (
           <View style={styles.volumeContainer}>
+            <Ionicons name='volume-low' size={iconSize.sm} color={theme.text.secondary} />
             <Slider
               style={styles.volumeSlider}
               value={volume}
-              onValueChange={setVolume}
+              onValueChange={handleVolumeChange}
               minimumValue={0}
               maximumValue={1}
               minimumTrackTintColor={theme.player.progress}
               maximumTrackTintColor={theme.player.progressBackground}
               thumbTintColor={theme.player.progress}
             />
+            <Ionicons name='volume-high' size={iconSize.sm} color={theme.text.secondary} />
           </View>
         )}
 

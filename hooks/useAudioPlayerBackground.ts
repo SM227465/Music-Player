@@ -2,6 +2,7 @@
 import { Song } from '@/types/searchSong';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import MediaControls from '../modules/expo-media-controls/src/index';
 
 export const useAudioPlayerBackground = () => {
   const player = useAudioPlayer();
@@ -124,8 +125,16 @@ export const useAudioPlayerBackground = () => {
       setIsPlaying(true);
       setIsLoading(false);
 
-      // Note: Lock screen controls would be handled by expo-media-controls native module
-      // or through expo-audio's built-in media session if available
+      // Update media notification
+      MediaControls.updateNowPlaying({
+        title: song.name,
+        artist: song.artists?.primary?.map(a => a.name).join(', ') || 'Unknown Artist',
+        album: song.album?.name || '',
+        artworkUrl: song.image?.find(img => img.quality === '500x500')?.url || song.image?.[0]?.url,
+        duration: song.duration || 0,
+      }).catch(error => {
+        console.error('Failed to update now playing:', error);
+      });
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsLoading(false);
@@ -171,8 +180,16 @@ export const useAudioPlayerBackground = () => {
       setIsPlaying(true);
       setIsLoading(false);
 
-      // Note: Lock screen controls would be handled by expo-media-controls native module
-      // or through expo-audio's built-in media session if available
+      // Update media notification
+      MediaControls.updateNowPlaying({
+        title: song.name,
+        artist: song.artists?.primary?.map(a => a.name).join(', ') || 'Unknown Artist',
+        album: song.album?.name || '',
+        artworkUrl: song.image?.find(img => img.quality === '500x500')?.url || song.image?.[0]?.url,
+        duration: song.duration || 0,
+      }).catch(error => {
+        console.error('Failed to update now playing:', error);
+      });
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsLoading(false);
@@ -280,6 +297,11 @@ export const useAudioPlayerBackground = () => {
       player.seekTo(0);
       setPosition(0);
       lastPositionRef.current = 0;
+
+      // Clear media notification
+      MediaControls.clearNowPlaying().catch(error => {
+        console.error('Failed to clear now playing:', error);
+      });
     } catch (error) {
       console.error('Error stopping audio:', error);
     }
@@ -315,6 +337,15 @@ export const useAudioPlayerBackground = () => {
     }
   }, [player]);
 
+  // Set volume
+  const setVolume = useCallback((volumeLevel: number) => {
+    try {
+      player.volume = volumeLevel;
+    } catch (error) {
+      console.error('Error setting volume:', error);
+    }
+  }, [player]);
+
   // Format time helper
   const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -340,7 +371,10 @@ export const useAudioPlayerBackground = () => {
       setDuration(0);
       setIsLoading(false);
 
-      // Lock screen controls cleanup handled by native module
+      // Clear media notification
+      MediaControls.clearNowPlaying().catch(error => {
+        console.error('Failed to clear now playing:', error);
+      });
     } catch (error) {
       console.error('Error in stopAndClear:', error);
       setCurrentTrack(null);
@@ -350,6 +384,52 @@ export const useAudioPlayerBackground = () => {
       setIsLoading(false);
     }
   }, [currentTrack, player]);
+
+  // Update playback state in notification
+  useEffect(() => {
+    if (currentTrack && duration > 0) {
+      MediaControls.updatePlaybackState(isPlaying, position).catch(error => {
+        console.error('Failed to update playback state:', error);
+      });
+    }
+  }, [isPlaying, position, currentTrack, duration]);
+
+  // Handle media control events
+  useEffect(() => {
+    const subscriptions = [
+      MediaControls.onPlay(() => {
+        if (!isPlaying && currentTrack) {
+          resumeAudio();
+        }
+      }),
+      MediaControls.onPause(() => {
+        if (isPlaying) {
+          pauseAudio();
+        }
+      }),
+      MediaControls.onNext(() => {
+        playNext();
+      }),
+      MediaControls.onPrevious(() => {
+        playPrevious();
+      }),
+      MediaControls.onSeek((event) => {
+        if (event.position !== undefined) {
+          seekTo(event.position);
+        }
+      }),
+      MediaControls.onStop(() => {
+        stopAndClear();
+      }),
+    ];
+
+    return () => {
+      subscriptions.forEach(sub => sub.remove());
+      MediaControls.clearNowPlaying().catch(error => {
+        console.error('Failed to clear now playing on unmount:', error);
+      });
+    };
+  }, [isPlaying, currentTrack, resumeAudio, pauseAudio, playNext, playPrevious, seekTo, stopAndClear]);
 
   return {
     currentTrack,
@@ -372,6 +452,7 @@ export const useAudioPlayerBackground = () => {
     togglePlayPause,
     stopAudio,
     seekTo,
+    setVolume,
     formatTime,
     getProgress,
     stopAndClear,

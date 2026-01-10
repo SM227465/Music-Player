@@ -39,7 +39,7 @@ export default function LibraryScreen({ onSongPress, onPlayQueue, currentTrack, 
 
   const { favorites, loading: favoritesLoading, refresh: refreshFavorites } = useFavorites();
   const { playlists, createPlaylist, deletePlaylist, loading: playlistsLoading, refresh: refreshPlaylists } = usePlaylists();
-  const { history, loading: historyLoading, refresh: refreshHistory } = useHistory(20);
+  const { history, loading: historyLoading, clearHistory, refresh: refreshHistory } = useHistory(20);
   const { downloads, deleteSong, getTotalSize, formatBytes, loading: downloadsLoading, refresh: refreshDownloads } = useDownloads();
 
   const handleRefresh = async () => {
@@ -218,6 +218,9 @@ export default function LibraryScreen({ onSongPress, onPlayQueue, currentTrack, 
       paddingHorizontal: spacing.xl,
     },
     listHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       marginBottom: spacing.lg,
     },
     listTitle: {
@@ -229,6 +232,22 @@ export default function LibraryScreen({ onSongPress, onPlayQueue, currentTrack, 
     listSubtitle: {
       fontSize: fontSize.sm,
       color: theme.text.secondary,
+    },
+    clearHistoryButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.card.background,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.accent.error,
+      gap: spacing.xs,
+    },
+    clearHistoryText: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.medium,
+      color: theme.accent.error,
     },
     listContent: {
       paddingBottom: 100,
@@ -676,8 +695,40 @@ export default function LibraryScreen({ onSongPress, onPlayQueue, currentTrack, 
         }
       >
         <View style={styles.listHeader}>
-          <Text style={styles.listTitle}>Recently Played</Text>
-          <Text style={styles.listSubtitle}>{history.length} songs</Text>
+          <View>
+            <Text style={styles.listTitle}>Recently Played</Text>
+            <Text style={styles.listSubtitle}>{history.length} songs</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.clearHistoryButton}
+            onPress={() => {
+              Alert.alert(
+                'Clear History',
+                'Are you sure you want to clear your listening history? This action cannot be undone.',
+                [
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                  },
+                  {
+                    text: 'Clear',
+                    style: 'destructive',
+                    onPress: async () => {
+                      try {
+                        await clearHistory();
+                        Alert.alert('Success', 'History cleared successfully');
+                      } catch (error) {
+                        Alert.alert('Error', 'Failed to clear history');
+                      }
+                    },
+                  },
+                ],
+              );
+            }}
+          >
+            <Ionicons name='trash-outline' size={20} color={theme.accent.error} />
+            <Text style={styles.clearHistoryText}>Clear</Text>
+          </TouchableOpacity>
         </View>
         {history.map((item, index) => (
           <TouchableOpacity key={`${item.song.id}-${index}`} style={styles.songItem}>

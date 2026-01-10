@@ -3,24 +3,37 @@ package expo.modules.mediacontrols
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import expo.modules.core.interfaces.services.EventEmitter
-import expo.modules.kotlin.AppContext
+import android.support.v4.media.session.MediaControllerCompat
 
 class MediaControlReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
+        context ?: return
+
+        // Get the active MediaSession from ExpoMediaControlsModule
+        val mediaController = getMediaController(context) ?: return
+
         when (intent?.action) {
             "PLAY" -> {
-                // Event will be sent by MediaSession callback
+                mediaController.transportControls.play()
             }
             "PAUSE" -> {
-                // Event will be sent by MediaSession callback
+                mediaController.transportControls.pause()
             }
             "NEXT" -> {
-                // Event will be sent by MediaSession callback
+                mediaController.transportControls.skipToNext()
             }
             "PREVIOUS" -> {
-                // Event will be sent by MediaSession callback
+                mediaController.transportControls.skipToPrevious()
             }
+        }
+    }
+
+    private fun getMediaController(context: Context): MediaControllerCompat? {
+        return try {
+            // Access the MediaSession from the module singleton
+            ExpoMediaControlsModule.getMediaController(context)
+        } catch (e: Exception) {
+            null
         }
     }
 }

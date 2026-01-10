@@ -25,10 +25,17 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class ExpoMediaControlsModule : Module() {
-    private var mediaSession: MediaSessionCompat? = null
     private val notificationId = 1
     private val channelId = "music_playback"
     private val scope = CoroutineScope(Dispatchers.Main)
+
+    companion object {
+        private var mediaSession: MediaSessionCompat? = null
+
+        fun getMediaController(context: Context): MediaControllerCompat? {
+            return mediaSession?.controller
+        }
+    }
 
     override fun definition() = ModuleDefinition {
         Name("ExpoMediaControls")
