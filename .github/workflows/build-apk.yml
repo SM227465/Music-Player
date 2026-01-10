@@ -34,9 +34,44 @@ jobs:
         run: npm ci
 
       - name: Build Android APK
-        run: eas build -p android --profile preview --non-interactive --no-wait
+        run: eas build -p android --profile preview --non-interactive --local --output=./melodify.apk
 
-      - name: Comment on PR
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: melodify-apk
+          path: ./melodify.apk
+          retention-days: 30
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.date.outputs.date }}
+          name: Melodify v${{ steps.date.outputs.date }}
+          body: |
+            ## Melodify APK Build
+
+            **Build Date:** ${{ steps.date.outputs.date }}
+            **Branch:** develop
+            **Commit:** ${{ github.sha }}
+
+            ### Download
+            Download the APK file below and install it on your Android device.
+
+            ### Installation
+            1. Download the APK file
+            2. Enable "Install from Unknown Sources" in your Android settings
+            3. Open the downloaded APK file to install
+          files: ./melodify.apk
+          draft: false
+          prerelease: true
+
+      - name: Comment on PR with artifact
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
@@ -45,5 +80,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🚀 EAS Build started! Check the build status at https://expo.dev'
+              body: '✅ APK build completed! Download the artifact from the Actions run.'
             })
