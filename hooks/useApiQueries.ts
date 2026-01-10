@@ -1,7 +1,8 @@
 // hooks/useApiQueries.ts
 import { searchService } from '@/services/search.service';
 import { songService } from '@/services/song.service';
-import { useQuery } from '@tanstack/react-query';
+import { lyricsService } from '@/services/lyrics.service';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 
 // Search hooks
 export const useGlobalSearch = (query: string, enabled: boolean = true) => {
@@ -13,6 +14,54 @@ export const useGlobalSearch = (query: string, enabled: boolean = true) => {
   });
 };
 
+// Infinite scroll hooks for search
+export const useSearchSongsInfinite = (query: string) => {
+  return useInfiniteQuery({
+    queryKey: ['search', 'songs', 'infinite', query],
+    queryFn: ({ pageParam = 1 }) => searchService.searchSongs(query, pageParam, 10),
+    getNextPageParam: (lastPage, allPages) => {
+      // Check if there are more results - if we got less than 10 results, it's the last page
+      const results = lastPage.data?.results || [];
+      const hasMore = results.length === 10;
+      return hasMore ? allPages.length + 1 : undefined;
+    },
+    enabled: query.length > 2,
+    staleTime: 5 * 60 * 1000,
+    initialPageParam: 1,
+  });
+};
+
+export const useSearchAlbumsInfinite = (query: string) => {
+  return useInfiniteQuery({
+    queryKey: ['search', 'albums', 'infinite', query],
+    queryFn: ({ pageParam = 1 }) => searchService.searchAlbums(query, pageParam, 10),
+    getNextPageParam: (lastPage, allPages) => {
+      const results = lastPage.data?.results || [];
+      const hasMore = results.length === 10;
+      return hasMore ? allPages.length + 1 : undefined;
+    },
+    enabled: query.length > 2,
+    staleTime: 5 * 60 * 1000,
+    initialPageParam: 1,
+  });
+};
+
+export const useSearchArtistsInfinite = (query: string) => {
+  return useInfiniteQuery({
+    queryKey: ['search', 'artists', 'infinite', query],
+    queryFn: ({ pageParam = 1 }) => searchService.searchArtists(query, pageParam, 10),
+    getNextPageParam: (lastPage, allPages) => {
+      const results = lastPage.data?.results || [];
+      const hasMore = results.length === 10;
+      return hasMore ? allPages.length + 1 : undefined;
+    },
+    enabled: query.length > 2,
+    staleTime: 5 * 60 * 1000,
+    initialPageParam: 1,
+  });
+};
+
+// Legacy single-page hooks (kept for backward compatibility)
 export const useSearchSongs = (query: string, page: number = 1) => {
   return useQuery({
     queryKey: ['search', 'songs', query, page],
@@ -46,6 +95,15 @@ export const useSongDetails = (songId: string) => {
     queryFn: () => songService.getSongDetails(songId),
     enabled: !!songId,
     staleTime: 60 * 60 * 1000, // 1 hour
+  });
+};
+
+export const useLyrics = (songId: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['lyrics', songId],
+    queryFn: () => lyricsService.getLyrics(songId),
+    enabled: enabled && !!songId,
+    staleTime: 60 * 60 * 1000, // 1 hour - lyrics don't change
   });
 };
 
