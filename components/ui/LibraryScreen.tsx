@@ -18,8 +18,17 @@ import {
   View,
 } from 'react-native';
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
+import NowPlayingIndicator from './NowPlayingIndicator';
 
-export default function LibraryScreen() {
+interface LibraryScreenProps {
+  onSongPress?: (song: Song) => void;
+  onPlayQueue?: (songs: Song[], startIndex: number) => void;
+  currentTrack?: Song | null;
+  isPlaying?: boolean;
+  onTogglePlayPause?: () => void;
+}
+
+export default function LibraryScreen({ onSongPress, onPlayQueue, currentTrack, isPlaying, onTogglePlayPause }: LibraryScreenProps) {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState('Favorites');
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
@@ -272,6 +281,42 @@ export default function LibraryScreen() {
       justifyContent: 'center',
       alignItems: 'center',
     },
+    songItemPlaying: {
+      backgroundColor: theme.accent.primary + '15',
+      borderColor: theme.accent.primary + '40',
+    },
+    songTitlePlaying: {
+      color: theme.accent.primary,
+    },
+    nowPlayingContainer: {
+      marginRight: spacing.sm,
+    },
+    playAllButtonContainer: {
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border.primary,
+    },
+    playAllButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.accent.primary,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.full,
+      shadowColor: theme.accent.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    playAllText: {
+      color: theme.text.inverse,
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.bold,
+      marginLeft: spacing.sm,
+    },
     playlistsContainer: {
       flex: 1,
       paddingHorizontal: spacing.xl,
@@ -424,22 +469,49 @@ export default function LibraryScreen() {
     },
   });
 
-  const renderSongItem = ({ item }: { item: Song }) => (
-    <TouchableOpacity style={styles.songItem}>
-      <Image source={{ uri: getImageUrl(item.image, '150x150') || '' }} style={styles.songImage} />
-      <View style={styles.songInfo}>
-        <Text style={styles.songTitle} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.songArtist} numberOfLines={1}>
-          {item.artists.primary.map((artist) => artist.name).join(', ')}
-        </Text>
-      </View>
-      <TouchableOpacity style={styles.playIconButton}>
-        <Ionicons name='play' size={iconSize.sm} color={theme.accent.primary} />
+  const renderSongItem = ({ item, index }: { item: Song; index?: number }) => {
+    const isCurrentTrack = currentTrack?.id === item.id;
+
+    return (
+      <TouchableOpacity
+        style={[styles.songItem, isCurrentTrack && styles.songItemPlaying]}
+        onPress={() => onSongPress && onSongPress(item)}
+        activeOpacity={0.7}
+      >
+        <Image source={{ uri: getImageUrl(item.image, '150x150') || '' }} style={styles.songImage} />
+        <View style={styles.songInfo}>
+          <Text style={[styles.songTitle, isCurrentTrack && styles.songTitlePlaying]} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text style={styles.songArtist} numberOfLines={1}>
+            {item.artists.primary.map((artist) => artist.name).join(', ')}
+          </Text>
+        </View>
+        {isCurrentTrack ? (
+          <View style={styles.nowPlayingContainer}>
+            <NowPlayingIndicator isPlaying={isPlaying ?? false} />
+          </View>
+        ) : null}
+        <TouchableOpacity
+          style={styles.playIconButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            if (isCurrentTrack && onTogglePlayPause) {
+              onTogglePlayPause();
+            } else if (onSongPress) {
+              onSongPress(item);
+            }
+          }}
+        >
+          <Ionicons
+            name={isCurrentTrack ? (isPlaying ? 'pause' : 'play') : 'play'}
+            size={iconSize.sm}
+            color={theme.accent.primary}
+          />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   const renderFavorites = () => {
     if (favoritesLoading) {
@@ -461,11 +533,27 @@ export default function LibraryScreen() {
       );
     }
 
+    const handlePlayAll = () => {
+      if (favorites.length > 0) {
+        if (onPlayQueue) {
+          onPlayQueue(favorites, 0);
+        } else if (onSongPress) {
+          onSongPress(favorites[0]);
+        }
+      }
+    };
+
     return (
       <View style={styles.listContainer}>
         <View style={styles.listHeader}>
           <Text style={styles.listTitle}>{favorites.length} Liked Songs</Text>
           <Text style={styles.listSubtitle}>{getTotalDuration(favorites)}</Text>
+        </View>
+        <View style={styles.playAllButtonContainer}>
+          <TouchableOpacity style={styles.playAllButton} onPress={handlePlayAll}>
+            <Ionicons name='play' size={iconSize.md} color={theme.text.inverse} />
+            <Text style={styles.playAllText}>Play All</Text>
+          </TouchableOpacity>
         </View>
         <FlatList
           data={favorites}
@@ -714,6 +802,16 @@ export default function LibraryScreen() {
 
   // If a playlist is selected, show playlist songs
   if (selectedPlaylist) {
+    const handlePlayAllPlaylist = () => {
+      if (selectedPlaylist.songs.length > 0) {
+        if (onPlayQueue) {
+          onPlayQueue(selectedPlaylist.songs, 0);
+        } else if (onSongPress) {
+          onSongPress(selectedPlaylist.songs[0]);
+        }
+      }
+    };
+
     return (
       <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
         {/* Header with Back Button */}
@@ -746,13 +844,21 @@ export default function LibraryScreen() {
               <Text style={styles.emptyStateText}>Add songs to this playlist</Text>
             </View>
           ) : (
-            <FlatList
-              data={selectedPlaylist.songs}
-              renderItem={renderSongItem}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
-            />
+            <>
+              <View style={styles.playAllButtonContainer}>
+                <TouchableOpacity style={styles.playAllButton} onPress={handlePlayAllPlaylist}>
+                  <Ionicons name='play' size={iconSize.md} color={theme.text.inverse} />
+                  <Text style={styles.playAllText}>Play All</Text>
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={selectedPlaylist.songs}
+                renderItem={renderSongItem}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContent}
+              />
+            </>
           )}
         </View>
       </View>

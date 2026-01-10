@@ -1,15 +1,21 @@
 // components/ui/ProfileScreen.tsx
-import { useSettings } from '@/hooks/useStorage';
+import { useSettings, useApiConfig } from '@/hooks/useStorage';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 
 export default function ProfileScreen() {
   const theme = useTheme();
   const { settings, loading, updateSettings } = useSettings();
+  const { apiConfig, loading: apiLoading, updateApiConfig, resetToDefaults } = useApiConfig();
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showQualityModal, setShowQualityModal] = useState(false);
+  const [showApiConfigModal, setShowApiConfigModal] = useState(false);
+  const [editingAssistanceApi, setEditingAssistanceApi] = useState(false);
+  const [editingBaseApi, setEditingBaseApi] = useState(false);
+  const [tempAssistanceApi, setTempAssistanceApi] = useState('');
+  const [tempBaseApi, setTempBaseApi] = useState('');
 
   const styles = StyleSheet.create({
     container: {
@@ -203,6 +209,70 @@ export default function ProfileScreen() {
       fontWeight: fontWeight.semibold,
       textAlign: 'center',
     },
+    apiInput: {
+      backgroundColor: theme.card.background,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      color: theme.text.primary,
+      fontSize: fontSize.sm,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+      marginBottom: spacing.md,
+    },
+    apiInputDisabled: {
+      opacity: 0.6,
+    },
+    apiButtonRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    apiButton: {
+      flex: 1,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.accent.primary,
+      alignItems: 'center',
+    },
+    apiButtonSecondary: {
+      backgroundColor: theme.card.background,
+      borderWidth: 1,
+      borderColor: theme.border.primary,
+    },
+    apiButtonText: {
+      color: theme.text.inverse,
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.semibold,
+    },
+    apiButtonTextSecondary: {
+      color: theme.text.primary,
+    },
+    warningContainer: {
+      backgroundColor: theme.accent.warning + '15',
+      borderRadius: borderRadius.md,
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.accent.warning + '40',
+    },
+    warningText: {
+      color: theme.accent.warning,
+      fontSize: fontSize.sm,
+      lineHeight: 20,
+    },
+    resetButton: {
+      width: '100%',
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md,
+    },
+    resetButtonText: {
+      color: theme.text.inverse,
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+    },
   });
 
   if (loading || !settings) {
@@ -263,6 +333,86 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleEditAssistanceApi = () => {
+    Alert.alert(
+      'Warning',
+      'Changing API URLs may cause the app to malfunction. Only proceed if you know what you are doing.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            setTempAssistanceApi(apiConfig.assistanceApiUrl);
+            setEditingAssistanceApi(true);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEditBaseApi = () => {
+    Alert.alert(
+      'Warning',
+      'Changing API URLs may cause the app to malfunction. Only proceed if you know what you are doing.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            setTempBaseApi(apiConfig.baseApiUrl);
+            setEditingBaseApi(true);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSaveAssistanceApi = async () => {
+    try {
+      await updateApiConfig({ assistanceApiUrl: tempAssistanceApi });
+      setEditingAssistanceApi(false);
+      Alert.alert('Success', 'Assistance API URL updated successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update API URL');
+    }
+  };
+
+  const handleSaveBaseApi = async () => {
+    try {
+      await updateApiConfig({ baseApiUrl: tempBaseApi });
+      setEditingBaseApi(false);
+      Alert.alert('Success', 'Base API URL updated successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update API URL');
+    }
+  };
+
+  const handleResetApiConfig = () => {
+    Alert.alert(
+      'Reset API Configuration',
+      'Are you sure you want to reset all API URLs to default values?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await resetToDefaults();
+              setEditingAssistanceApi(false);
+              setEditingBaseApi(false);
+              Alert.alert('Success', 'API configuration reset to defaults');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to reset configuration');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -321,6 +471,22 @@ export default function ProfileScreen() {
             <View style={styles.optionContent}>
               <Text style={styles.optionTitle}>Theme</Text>
               <Text style={styles.optionSubtitle}>{getThemeLabel()}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.text.secondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* API Configuration */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>API Configuration</Text>
+
+          <TouchableOpacity style={styles.optionItem} onPress={() => setShowApiConfigModal(true)}>
+            <View style={styles.optionIconContainer}>
+              <Ionicons name="server" size={iconSize.md} color={theme.accent.primary} />
+            </View>
+            <View style={styles.optionContent}>
+              <Text style={styles.optionTitle}>Manage API URLs</Text>
+              <Text style={styles.optionSubtitle}>Configure backend services</Text>
             </View>
             <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.text.secondary} />
           </TouchableOpacity>
@@ -437,6 +603,105 @@ export default function ProfileScreen() {
 
             <TouchableOpacity style={styles.modalCloseButton} onPress={() => setShowQualityModal(false)}>
               <Text style={styles.modalCloseButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* API Configuration Modal */}
+      <Modal visible={showApiConfigModal} transparent animationType="fade" onRequestClose={() => setShowApiConfigModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>API Configuration</Text>
+
+            {/* Warning */}
+            <View style={[styles.warningContainer, { backgroundColor: '#FFA500' + '15', borderColor: '#FFA500' + '40' }]}>
+              <Text style={[styles.warningText, { color: '#FFA500' }]}>
+                ⚠️ Only modify these settings if you know what you are doing. Incorrect values may cause the app to malfunction.
+              </Text>
+            </View>
+
+            {/* Assistance API */}
+            <Text style={[styles.optionTitle, { marginBottom: spacing.sm }]}>Assistance API URL</Text>
+            <View style={{ marginBottom: spacing.lg }}>
+              <TextInput
+                style={[styles.apiInput, !editingAssistanceApi && styles.apiInputDisabled]}
+                value={editingAssistanceApi ? tempAssistanceApi : apiConfig.assistanceApiUrl}
+                onChangeText={setTempAssistanceApi}
+                editable={editingAssistanceApi}
+                placeholder="Enter Assistance API URL"
+                placeholderTextColor={theme.text.tertiary}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <View style={styles.apiButtonRow}>
+                {!editingAssistanceApi ? (
+                  <TouchableOpacity style={styles.apiButton} onPress={handleEditAssistanceApi}>
+                    <Text style={styles.apiButtonText}>Edit</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <>
+                    <TouchableOpacity style={[styles.apiButton, styles.apiButtonSecondary]} onPress={() => setEditingAssistanceApi(false)}>
+                      <Text style={[styles.apiButtonText, styles.apiButtonTextSecondary]}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.apiButton} onPress={handleSaveAssistanceApi}>
+                      <Text style={styles.apiButtonText}>Save</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </View>
+
+            {/* Base API */}
+            <Text style={[styles.optionTitle, { marginBottom: spacing.sm }]}>Base API URL</Text>
+            <View style={{ marginBottom: spacing.lg }}>
+              <TextInput
+                style={[styles.apiInput, !editingBaseApi && styles.apiInputDisabled]}
+                value={editingBaseApi ? tempBaseApi : apiConfig.baseApiUrl}
+                onChangeText={setTempBaseApi}
+                editable={editingBaseApi}
+                placeholder="Enter Base API URL"
+                placeholderTextColor={theme.text.tertiary}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <View style={styles.apiButtonRow}>
+                {!editingBaseApi ? (
+                  <TouchableOpacity style={styles.apiButton} onPress={handleEditBaseApi}>
+                    <Text style={styles.apiButtonText}>Edit</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <>
+                    <TouchableOpacity style={[styles.apiButton, styles.apiButtonSecondary]} onPress={() => setEditingBaseApi(false)}>
+                      <Text style={[styles.apiButtonText, styles.apiButtonTextSecondary]}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.apiButton} onPress={handleSaveBaseApi}>
+                      <Text style={styles.apiButtonText}>Save</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </View>
+
+            {/* Reset and Close buttons */}
+            <TouchableOpacity
+              style={[
+                styles.resetButton,
+                {
+                  backgroundColor: theme.accent.error || '#FF3B30',
+                }
+              ]}
+              onPress={handleResetApiConfig}
+            >
+              <Text style={styles.resetButtonText}>Reset to Defaults</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.modalCloseButton} onPress={() => {
+              setShowApiConfigModal(false);
+              setEditingAssistanceApi(false);
+              setEditingBaseApi(false);
+            }}>
+              <Text style={styles.modalCloseButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>

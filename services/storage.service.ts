@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
   QUEUE: '@music_app:queue',
   RECENT_SEARCHES: '@music_app:recent_searches',
   FOLLOWED_ARTISTS: '@music_app:followed_artists',
+  API_CONFIG: '@music_app:api_config',
 } as const;
 
 export interface Playlist {
@@ -38,6 +39,11 @@ export interface AppSettings {
   enableHaptics: boolean;
   sleepTimerDuration?: number;
   crossfadeDuration: number;
+}
+
+export interface ApiConfig {
+  assistanceApiUrl: string;
+  baseApiUrl: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -517,6 +523,57 @@ export const followedArtistsService = {
       }
     } catch (error) {
       console.error('Error toggling follow:', error);
+      throw error;
+    }
+  },
+};
+
+// API Configuration Management
+export const apiConfigService = {
+  // Default API URLs
+  DEFAULT_ASSISTANCE_API: 'https://jiosaavn-scraper.onrender.com/api/jiosaavn',
+  DEFAULT_BASE_API: 'https://saavn.sumit.co/api',
+
+  async getApiConfig(): Promise<ApiConfig> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.API_CONFIG);
+      if (data) {
+        return JSON.parse(data);
+      }
+      // Return defaults if not configured
+      return {
+        assistanceApiUrl: this.DEFAULT_ASSISTANCE_API,
+        baseApiUrl: this.DEFAULT_BASE_API,
+      };
+    } catch (error) {
+      console.error('Error getting API config:', error);
+      return {
+        assistanceApiUrl: this.DEFAULT_ASSISTANCE_API,
+        baseApiUrl: this.DEFAULT_BASE_API,
+      };
+    }
+  },
+
+  async updateApiConfig(config: Partial<ApiConfig>): Promise<void> {
+    try {
+      const current = await this.getApiConfig();
+      const updated = { ...current, ...config };
+      await AsyncStorage.setItem(STORAGE_KEYS.API_CONFIG, JSON.stringify(updated));
+    } catch (error) {
+      console.error('Error updating API config:', error);
+      throw error;
+    }
+  },
+
+  async resetToDefaults(): Promise<void> {
+    try {
+      const defaultConfig: ApiConfig = {
+        assistanceApiUrl: this.DEFAULT_ASSISTANCE_API,
+        baseApiUrl: this.DEFAULT_BASE_API,
+      };
+      await AsyncStorage.setItem(STORAGE_KEYS.API_CONFIG, JSON.stringify(defaultConfig));
+    } catch (error) {
+      console.error('Error resetting API config:', error);
       throw error;
     }
   },

@@ -9,9 +9,11 @@ import {
   settingsService,
   queueService,
   followedArtistsService,
+  apiConfigService,
   Playlist,
   HistoryItem,
   AppSettings,
+  ApiConfig,
 } from '@/services/storage.service';
 import { downloadService, DownloadedSong } from '@/services/download.service';
 
@@ -610,5 +612,61 @@ export function useFollowedArtists() {
     toggleFollow,
     isFollowing,
     refresh: loadFollowedArtists,
+  };
+}
+
+// Hook for API Configuration
+export function useApiConfig() {
+  const [apiConfig, setApiConfig] = useState<ApiConfig>({
+    assistanceApiUrl: apiConfigService.DEFAULT_ASSISTANCE_API,
+    baseApiUrl: apiConfigService.DEFAULT_BASE_API,
+  });
+  const [loading, setLoading] = useState(true);
+
+  const loadApiConfig = useCallback(async () => {
+    try {
+      setLoading(true);
+      const config = await apiConfigService.getApiConfig();
+      setApiConfig(config);
+    } catch (error) {
+      console.error('Error loading API config:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadApiConfig();
+  }, [loadApiConfig]);
+
+  const updateApiConfig = useCallback(
+    async (config: Partial<ApiConfig>) => {
+      try {
+        await apiConfigService.updateApiConfig(config);
+        await loadApiConfig();
+      } catch (error) {
+        console.error('Error updating API config:', error);
+        throw error;
+      }
+    },
+    [loadApiConfig]
+  );
+
+  const resetToDefaults = useCallback(async () => {
+    try {
+      await apiConfigService.resetToDefaults();
+      await loadApiConfig();
+    } catch (error) {
+      console.error('Error resetting API config:', error);
+      throw error;
+    }
+  }, [loadApiConfig]);
+
+  return {
+    apiConfig,
+    loading,
+    updateApiConfig,
+    resetToDefaults,
+    refresh: loadApiConfig,
   };
 }

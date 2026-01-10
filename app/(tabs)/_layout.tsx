@@ -120,7 +120,15 @@ function MainApp() {
           />
         );
       case 'library':
-        return <LibraryScreen />;
+        return (
+          <LibraryScreen
+            onSongPress={handleSongPress}
+            onPlayQueue={handlePlayQueue}
+            currentTrack={audioPlayer.currentTrack}
+            isPlaying={audioPlayer.isPlaying}
+            onTogglePlayPause={audioPlayer.togglePlayPause}
+          />
+        );
       case 'profile':
         return <ProfileScreen />;
       default:
