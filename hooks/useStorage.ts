@@ -1,12 +1,14 @@
 // hooks/useStorage.ts
 import { useState, useEffect, useCallback } from 'react';
 import { Song } from '@/types/searchSong';
+import { ArtistResult } from '@/types/artistSearch';
 import {
   favoritesService,
   playlistService,
   historyService,
   settingsService,
   queueService,
+  followedArtistsService,
   Playlist,
   HistoryItem,
   AppSettings,
@@ -531,5 +533,82 @@ export function useDownloads() {
     getTotalSize,
     formatBytes: downloadService.formatBytes,
     refresh: loadDownloads,
+  };
+}
+
+// Hook for Followed Artists
+export function useFollowedArtists() {
+  const [followedArtists, setFollowedArtists] = useState<ArtistResult[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadFollowedArtists = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await followedArtistsService.getFollowedArtists();
+      setFollowedArtists(data);
+    } catch (error) {
+      console.error('Error loading followed artists:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFollowedArtists();
+  }, [loadFollowedArtists]);
+
+  const followArtist = useCallback(
+    async (artist: ArtistResult) => {
+      try {
+        await followedArtistsService.followArtist(artist);
+        await loadFollowedArtists();
+      } catch (error) {
+        console.error('Error following artist:', error);
+      }
+    },
+    [loadFollowedArtists]
+  );
+
+  const unfollowArtist = useCallback(
+    async (artistId: string) => {
+      try {
+        await followedArtistsService.unfollowArtist(artistId);
+        await loadFollowedArtists();
+      } catch (error) {
+        console.error('Error unfollowing artist:', error);
+      }
+    },
+    [loadFollowedArtists]
+  );
+
+  const toggleFollow = useCallback(
+    async (artist: ArtistResult) => {
+      try {
+        const isFollowing = await followedArtistsService.toggleFollow(artist);
+        await loadFollowedArtists();
+        return isFollowing;
+      } catch (error) {
+        console.error('Error toggling follow:', error);
+        return false;
+      }
+    },
+    [loadFollowedArtists]
+  );
+
+  const isFollowing = useCallback(
+    (artistId: string) => {
+      return followedArtists.some((artist) => artist.id === artistId);
+    },
+    [followedArtists]
+  );
+
+  return {
+    followedArtists,
+    loading,
+    followArtist,
+    unfollowArtist,
+    toggleFollow,
+    isFollowing,
+    refresh: loadFollowedArtists,
   };
 }

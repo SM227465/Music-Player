@@ -26,6 +26,7 @@ import {
   useSearchArtistsInfinite,
 } from '../../hooks/useApiQueries';
 import { useRecentSearches } from '../../hooks/useRecentSearches';
+import { useFollowedArtists } from '../../hooks/useStorage';
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 import { decodeHtmlEntities } from '@/utils/htmlDecode';
 import { Skeleton } from './SkeletonLoader';
@@ -45,6 +46,7 @@ export default function SearchScreen({ onSongPress, onArtistPress, currentTrack,
   const [activeFilter, setActiveFilter] = useState('Songs');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const { recentSearches, addRecentSearch, removeRecentSearch, clearRecentSearches } = useRecentSearches(5);
+  const { toggleFollow, isFollowing } = useFollowedArtists();
 
   // Popular searches - dummy data (TODO: Replace with API data)
   const popularSearches = [
@@ -122,6 +124,11 @@ export default function SearchScreen({ onSongPress, onArtistPress, currentTrack,
     return currentTrack?.id === song.id && isPlaying;
   };
 
+  // Handle follow/unfollow artist
+  const handleFollowToggle = async (artist: ArtistResult) => {
+    await toggleFollow(artist);
+  };
+
   // Render functions for individual search results
   const renderSongItem = ({ item }: { item: Song }) => {
     const isPlayingNow = isCurrentlyPlaying(item);
@@ -177,24 +184,36 @@ export default function SearchScreen({ onSongPress, onArtistPress, currentTrack,
     </TouchableOpacity>
   );
 
-  const renderArtistItem = ({ item }: { item: ArtistResult }) => (
-    <TouchableOpacity
-      style={styles.resultItem}
-      onPress={() => onArtistPress && onArtistPress(item.id)}
-      activeOpacity={0.7}
-    >
-      <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.artistImage} />
-      <View style={styles.resultInfo}>
-        <Text style={styles.resultTitle} numberOfLines={1}>
-          {decodeHtmlEntities(item.name)}
-        </Text>
-        <Text style={styles.resultSubtitle}>Artist</Text>
-      </View>
-      <TouchableOpacity style={styles.followButton}>
-        <Text style={styles.followText}>Follow</Text>
+  const renderArtistItem = ({ item }: { item: ArtistResult }) => {
+    const following = isFollowing(item.id);
+
+    return (
+      <TouchableOpacity
+        style={styles.resultItem}
+        onPress={() => onArtistPress && onArtistPress(item.id)}
+        activeOpacity={0.7}
+      >
+        <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.artistImage} />
+        <View style={styles.resultInfo}>
+          <Text style={styles.resultTitle} numberOfLines={1}>
+            {decodeHtmlEntities(item.name)}
+          </Text>
+          <Text style={styles.resultSubtitle}>Artist</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.followButton, following && styles.followingButton]}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleFollowToggle(item);
+          }}
+        >
+          <Text style={[styles.followText, following && styles.followingText]}>
+            {following ? 'Following' : 'Follow'}
+          </Text>
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   // Render functions for global search results
   const renderGlobalSongItem = ({ item }: { item: SongResult }) => (
@@ -232,24 +251,36 @@ export default function SearchScreen({ onSongPress, onArtistPress, currentTrack,
     </TouchableOpacity>
   );
 
-  const renderGlobalArtistItem = ({ item }: { item: ArtistResult }) => (
-    <TouchableOpacity
-      style={styles.resultItem}
-      onPress={() => onArtistPress && onArtistPress(item.id)}
-      activeOpacity={0.7}
-    >
-      <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.artistImage} />
-      <View style={styles.resultInfo}>
-        <Text style={styles.resultTitle} numberOfLines={1}>
-          {decodeHtmlEntities(item.name)}
-        </Text>
-        <Text style={styles.resultSubtitle}>Artist</Text>
-      </View>
-      <TouchableOpacity style={styles.followButton}>
-        <Text style={styles.followText}>Follow</Text>
+  const renderGlobalArtistItem = ({ item }: { item: ArtistResult }) => {
+    const following = isFollowing(item.id);
+
+    return (
+      <TouchableOpacity
+        style={styles.resultItem}
+        onPress={() => onArtistPress && onArtistPress(item.id)}
+        activeOpacity={0.7}
+      >
+        <Image source={{ uri: getImageUrl(item.image, '150x150') }} style={styles.artistImage} />
+        <View style={styles.resultInfo}>
+          <Text style={styles.resultTitle} numberOfLines={1}>
+            {decodeHtmlEntities(item.name)}
+          </Text>
+          <Text style={styles.resultSubtitle}>Artist</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.followButton, following && styles.followingButton]}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleFollowToggle(item);
+          }}
+        >
+          <Text style={[styles.followText, following && styles.followingText]}>
+            {following ? 'Following' : 'Follow'}
+          </Text>
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   const renderPlaylistItem = ({ item }: { item: any }) => (
     <TouchableOpacity style={styles.resultItem} onPress={() => {/* TODO: Navigate to playlist details */}}>
@@ -593,10 +624,16 @@ export default function SearchScreen({ onSongPress, onArtistPress, currentTrack,
       borderWidth: 1,
       borderColor: theme.accent.primary,
     },
+    followingButton: {
+      backgroundColor: theme.accent.primary,
+    },
     followText: {
       color: theme.accent.primary,
       fontSize: fontSize.xs,
       fontWeight: fontWeight.semibold,
+    },
+    followingText: {
+      color: theme.text.inverse,
     },
     loader: {
       paddingVertical: spacing.xxxxl,

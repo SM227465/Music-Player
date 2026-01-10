@@ -1,6 +1,7 @@
 // services/storage.service.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Song } from '@/types/searchSong';
+import { ArtistResult } from '@/types/artistSearch';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -10,6 +11,7 @@ const STORAGE_KEYS = {
   SETTINGS: '@music_app:settings',
   QUEUE: '@music_app:queue',
   RECENT_SEARCHES: '@music_app:recent_searches',
+  FOLLOWED_ARTISTS: '@music_app:followed_artists',
 } as const;
 
 export interface Playlist {
@@ -450,6 +452,71 @@ export const recentSearchesService = {
       await AsyncStorage.removeItem(STORAGE_KEYS.RECENT_SEARCHES);
     } catch (error) {
       console.error('Error clearing recent searches:', error);
+      throw error;
+    }
+  },
+};
+
+// Followed Artists Management
+export const followedArtistsService = {
+  async getFollowedArtists(): Promise<ArtistResult[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.FOLLOWED_ARTISTS);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error getting followed artists:', error);
+      return [];
+    }
+  },
+
+  async followArtist(artist: ArtistResult): Promise<void> {
+    try {
+      const followedArtists = await this.getFollowedArtists();
+      const exists = followedArtists.some((a) => a.id === artist.id);
+
+      if (!exists) {
+        followedArtists.unshift(artist);
+        await AsyncStorage.setItem(STORAGE_KEYS.FOLLOWED_ARTISTS, JSON.stringify(followedArtists));
+      }
+    } catch (error) {
+      console.error('Error following artist:', error);
+      throw error;
+    }
+  },
+
+  async unfollowArtist(artistId: string): Promise<void> {
+    try {
+      const followedArtists = await this.getFollowedArtists();
+      const filtered = followedArtists.filter((a) => a.id !== artistId);
+      await AsyncStorage.setItem(STORAGE_KEYS.FOLLOWED_ARTISTS, JSON.stringify(filtered));
+    } catch (error) {
+      console.error('Error unfollowing artist:', error);
+      throw error;
+    }
+  },
+
+  async isFollowing(artistId: string): Promise<boolean> {
+    try {
+      const followedArtists = await this.getFollowedArtists();
+      return followedArtists.some((a) => a.id === artistId);
+    } catch (error) {
+      console.error('Error checking if following artist:', error);
+      return false;
+    }
+  },
+
+  async toggleFollow(artist: ArtistResult): Promise<boolean> {
+    try {
+      const isFollowing = await this.isFollowing(artist.id);
+      if (isFollowing) {
+        await this.unfollowArtist(artist.id);
+        return false;
+      } else {
+        await this.followArtist(artist);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
       throw error;
     }
   },

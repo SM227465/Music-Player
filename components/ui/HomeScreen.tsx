@@ -15,6 +15,7 @@ import {
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 import { useHomeData } from '@/hooks/useJioSaavnQueries';
 import { useSongDetails } from '@/hooks/useApiQueries';
+import { useFollowedArtists } from '@/hooks/useStorage';
 import { Song } from '@/types/searchSong';
 import { HomeScreenSkeleton } from './SkeletonLoader';
 import { decodeHtmlEntities } from '../../utils/htmlDecode';
@@ -43,6 +44,7 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
   // Use React Query hooks
   const { newReleases, playlists, charts, artists, isLoading, refetch } = useHomeData();
   const { data: songDetails, isSuccess, isError, isLoading: isFetchingSong } = useSongDetails(selectedSongId);
+  const { followedArtists } = useFollowedArtists();
 
   // When song details are fetched, play the song
   useEffect(() => {
@@ -512,6 +514,39 @@ export default function HomeScreen({ onSongPress, onPlayQueue, currentTrack, isP
                 >
                   <Image
                     source={{ uri: getImageUrl(artist.image) }}
+                    style={styles.artistImage}
+                    resizeMode='cover'
+                  />
+                  <Text style={styles.artistName} numberOfLines={1}>
+                    {decodeHtmlEntities(artist.name)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Followed Artists */}
+        {followedArtists.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Following</Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContainer}
+              nestedScrollEnabled={true}
+            >
+              {followedArtists.map((artist, index) => (
+                <TouchableOpacity
+                  key={artist.id}
+                  style={[styles.artistCard, index === followedArtists.length - 1 && { marginRight: spacing.xl }]}
+                  onPress={() => handleArtistPress(artist.id)}
+                  activeOpacity={0.7}
+                >
+                  <Image
+                    source={{ uri: getImageUrl(artist.image.find((img) => img.quality === '500x500')?.url || artist.image[0]?.url || '') }}
                     style={styles.artistImage}
                     resizeMode='cover'
                   />
