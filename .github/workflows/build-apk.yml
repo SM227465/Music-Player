@@ -8,6 +8,10 @@ on:
     branches:
       - develop
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   build:
     name: Build APK with EAS
