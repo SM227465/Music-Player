@@ -15,12 +15,16 @@ export const useAudioPlayerBackground = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [queue, setQueue] = useState<Song[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showAutoPlayNext, setShowAutoPlayNext] = useState(false);
+  const [autoPlayNextSong, setAutoPlayNextSong] = useState<Song | null>(null);
 
   const isSeekingRef = useRef(false);
   const lastPositionRef = useRef(0);
   const hasPlayedNextRef = useRef(false);
   const audioModeConfigured = useRef(false);
   const lastUpdateTimeRef = useRef(0);
+  const lastPlaybackStateRef = useRef(false);
+  const isSingleSongPlayRef = useRef(false);
 
   // Configure audio mode for background playback (once)
   useEffect(() => {
@@ -100,6 +104,17 @@ export const useAudioPlayerBackground = () => {
       setIsLoading(true);
       hasPlayedNextRef.current = false; // Reset flag when manually changing songs
 
+      // Re-configure audio mode for background playback to ensure it's active
+      // This is important when transitioning songs while phone is locked
+      if (!audioModeConfigured.current) {
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          shouldPlayInBackground: true,
+          interruptionMode: 'doNotMix',
+        });
+        audioModeConfigured.current = true;
+      }
+
       // Get the best quality audio URL
       const audioUrl = song.downloadUrl?.find(u => u.quality === '320kbps')?.url ||
                       song.downloadUrl?.find(u => u.quality === '160kbps')?.url ||
@@ -111,19 +126,24 @@ export const useAudioPlayerBackground = () => {
         return;
       }
 
-
-      // Replace the current track
-      player.replace(audioUrl);
+      // Update state before replacing track
       setCurrentTrack(song);
       setCurrentIndex(index);
       setPosition(0);
       lastPositionRef.current = 0;
       setDuration(0);
 
+      // Replace the current track and start playback
+      player.replace(audioUrl);
+
+      // Small delay to ensure the track is loaded before playing
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       // Start playback
       player.play();
       setIsPlaying(true);
       setIsLoading(false);
+      lastPlaybackStateRef.current = true;
 
       // Update media notification
       MediaControls.updateNowPlaying({
@@ -142,7 +162,7 @@ export const useAudioPlayerBackground = () => {
   }, [queue, player]);
 
   // Play audio function - sets up queue and plays first song
-  const playAudio = useCallback(async (song: Song) => {
+  const playAudio = useCallback(async (song: Song, playlistSongs?: Song[]) => {
     try {
       // Validate song object
       if (!song || typeof song !== 'object' || !song.id) {
@@ -150,10 +170,34 @@ export const useAudioPlayerBackground = () => {
         return;
       }
 
-      // Set queue with single song and play it
-      setQueue([song]);
-      setCurrentIndex(0);
+      // If playlistSongs provided, this is a single song from a playlist
+      // We'll set up the queue with all songs but mark it as single play for auto-play feature
+      if (playlistSongs && playlistSongs.length > 1) {
+        const songIndex = playlistSongs.findIndex(s => s.id === song.id);
+        if (songIndex !== -1) {
+          isSingleSongPlayRef.current = true;
+          setQueue(playlistSongs);
+          setCurrentIndex(songIndex);
+          // Check if there's a next song to show auto-play
+          if (songIndex < playlistSongs.length - 1) {
+            setAutoPlayNextSong(playlistSongs[songIndex + 1]);
+          }
+        } else {
+          // Song not found in playlist, just play single
+          isSingleSongPlayRef.current = false;
+          setQueue([song]);
+          setCurrentIndex(0);
+          setAutoPlayNextSong(null);
+        }
+      } else {
+        // Regular single song play
+        isSingleSongPlayRef.current = false;
+        setQueue([song]);
+        setCurrentIndex(0);
+        setAutoPlayNextSong(null);
+      }
 
+      setShowAutoPlayNext(false);
       setIsLoading(true);
 
       // Get the best quality audio URL
@@ -179,6 +223,7 @@ export const useAudioPlayerBackground = () => {
       player.play();
       setIsPlaying(true);
       setIsLoading(false);
+      lastPlaybackStateRef.current = true;
 
       // Update media notification
       MediaControls.updateNowPlaying({
@@ -210,23 +255,50 @@ export const useAudioPlayerBackground = () => {
 
   // Play next song in queue
   const playNext = useCallback(async () => {
+    setShowAutoPlayNext(false);
+    isSingleSongPlayRef.current = false; // Reset single song play flag
     if (currentIndex < queue.length - 1) {
       await playSongAtIndex(currentIndex + 1);
+      // Update next song for auto-play if there's another one
+      if (currentIndex + 2 < queue.length) {
+        setAutoPlayNextSong(queue[currentIndex + 2]);
+      } else {
+        setAutoPlayNextSong(null);
+      }
     }
-  }, [currentIndex, queue.length, playSongAtIndex]);
+  }, [currentIndex, queue, playSongAtIndex]);
+
+  // Cancel auto-play next
+  const cancelAutoPlayNext = useCallback(() => {
+    setShowAutoPlayNext(false);
+    hasPlayedNextRef.current = false; // Allow re-trigger if user plays again
+  }, []);
 
   // Auto-play next song when current song ends
   useEffect(() => {
     const statusPosition = status.currentTime || 0;
     const statusDuration = status.duration || 0;
 
-    if (status.isLoaded && !status.playing && statusPosition > 0 && statusDuration > 0) {
+    if (status.isLoaded && statusDuration > 0) {
       const isNearEnd = Math.abs(statusPosition - statusDuration) < 1;
+      const hasEnded = !status.playing && statusPosition > 0 && isNearEnd;
 
       // Only auto-play if we haven't already played next for this song
-      if (isNearEnd && queue.length > 0 && currentIndex < queue.length - 1 && !hasPlayedNextRef.current) {
+      if (hasEnded && queue.length > 0 && currentIndex < queue.length - 1 && !hasPlayedNextRef.current) {
         hasPlayedNextRef.current = true; // Prevent multiple triggers
-        playNext();
+
+        // If this was a single song play from a playlist, show auto-play countdown
+        if (isSingleSongPlayRef.current) {
+          const nextSong = queue[currentIndex + 1];
+          setAutoPlayNextSong(nextSong);
+          setShowAutoPlayNext(true);
+          // Don't auto-play immediately, let the countdown handle it
+        } else {
+          // Regular queue play - auto-advance immediately
+          setTimeout(() => {
+            playNext();
+          }, 100);
+        }
       }
     }
   }, [status.isLoaded, status.playing, status.currentTime, status.duration, queue.length, currentIndex, playNext]);
@@ -385,12 +457,16 @@ export const useAudioPlayerBackground = () => {
     }
   }, [currentTrack, player]);
 
-  // Update playback state in notification
+  // Update playback state in notification (only when play/pause state changes)
   useEffect(() => {
     if (currentTrack && duration > 0) {
-      MediaControls.updatePlaybackState(isPlaying, position).catch(error => {
-        console.error('Failed to update playback state:', error);
-      });
+      // Only update when play/pause state actually changes to avoid flickering
+      if (lastPlaybackStateRef.current !== isPlaying) {
+        lastPlaybackStateRef.current = isPlaying;
+        MediaControls.updatePlaybackState(isPlaying, position).catch(error => {
+          console.error('Failed to update playback state:', error);
+        });
+      }
     }
   }, [isPlaying, position, currentTrack, duration]);
 
@@ -439,6 +515,8 @@ export const useAudioPlayerBackground = () => {
     isLoading,
     queue,
     currentIndex,
+    showAutoPlayNext,
+    autoPlayNextSong,
     playAudio,
     playQueue,
     playSongAtIndex,
@@ -456,5 +534,6 @@ export const useAudioPlayerBackground = () => {
     formatTime,
     getProgress,
     stopAndClear,
+    cancelAutoPlayNext,
   };
 };

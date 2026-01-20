@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QueueModal from './QueueModal';
 import LyricsModal from './LyricsModal';
 import SongOptionsModal from './SongOptionsModal';
+import CircularCountdownButton from './CircularCountdownButton';
 import { decodeHtmlEntities } from '../../utils/htmlDecode';
 
 type AudioPlayerType = ReturnType<typeof useAudioPlayerBackground>;
@@ -43,7 +44,6 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
   const volumeHideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const {
     getProgress,
-    playAudio,
     playSongAtIndex,
     duration,
     seekTo,
@@ -58,7 +58,9 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
     playPrevious,
     removeFromQueue,
     clearQueue,
-    setVolume: setAudioVolume
+    setVolume: setAudioVolume,
+    showAutoPlayNext,
+    cancelAutoPlayNext
   } = audioPlayer;
   const progress = getProgress() / 100;
   const hasNext = currentIndex < queue.length - 1;
@@ -553,18 +555,16 @@ export default function NowPlayingScreen({ currentTrack, onMinimize, isVisible, 
             <Ionicons name='play-skip-back' size={iconSize.lg} color={theme.text.primary} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.playButton, isLoading && styles.disabledButton]}
+          <CircularCountdownButton
+            size={80}
+            isPlaying={isPlaying}
+            isLoading={isLoading}
+            showCountdown={showAutoPlayNext}
+            countdownSeconds={3}
             onPress={handlePlayPause}
-            disabled={isLoading}
-            activeOpacity={0.8}
-          >
-            {isLoading ? (
-              <ActivityIndicator size='small' color={theme.text.inverse} />
-            ) : (
-              <Ionicons name={isPlaying ? 'pause' : 'play'} size={iconSize.xl} color={theme.text.inverse} />
-            )}
-          </TouchableOpacity>
+            onCountdownComplete={playNext}
+            onCountdownCancel={cancelAutoPlayNext}
+          />
 
           <TouchableOpacity
             style={[styles.controlButton, !hasNext && styles.disabledButton]}

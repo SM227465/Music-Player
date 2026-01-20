@@ -4,11 +4,15 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
+import android.os.IBinder
+import android.os.PowerManager
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
@@ -29,9 +33,12 @@ class ExpoMediaControlsModule : Module() {
     private val notificationId = 1
     private val channelId = "music_playback"
     private val scope = CoroutineScope(Dispatchers.Main)
+    private var lastNotificationBuilder: NotificationCompat.Builder? = null
+    private var wakeLock: PowerManager.WakeLock? = null
 
     companion object {
         private var mediaSession: MediaSessionCompat? = null
+        private var serviceIntent: Intent? = null
 
         fun getMediaController(context: Context): MediaControllerCompat? {
             return mediaSession?.controller
@@ -46,9 +53,12 @@ class ExpoMediaControlsModule : Module() {
         OnCreate {
             createNotificationChannel()
             initializeMediaSession()
+            acquireWakeLock()
         }
 
         OnDestroy {
+            releaseWakeLock()
+            stopForegroundService()
             mediaSession?.release()
             mediaSession = null
         }
@@ -58,6 +68,7 @@ class ExpoMediaControlsModule : Module() {
                 try {
                     val artwork = artworkUrl?.let { loadBitmapFromUrl(it) }
                     updateMediaMetadata(title, artist, album, artwork, duration.toLong())
+                    startForegroundService()
                     showNotification(title, artist, artwork, true)
                     promise.resolve(true)
                 } catch (e: Exception) {
@@ -71,12 +82,14 @@ class ExpoMediaControlsModule : Module() {
                 val state = if (isPlaying) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED
                 updatePlaybackState(state, position.toLong())
 
-                // Update notification
-                val metadata = mediaSession?.controller?.metadata
-                val title = metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE) ?: ""
-                val artist = metadata?.getString(MediaMetadataCompat.METADATA_KEY_ARTIST) ?: ""
-                val artwork = metadata?.getBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART)
-                showNotification(title, artist, artwork, isPlaying)
+                // Update notification only if it exists
+                if (lastNotificationBuilder != null) {
+                    val metadata = mediaSession?.controller?.metadata
+                    val title = metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE) ?: ""
+                    val artist = metadata?.getString(MediaMetadataCompat.METADATA_KEY_ARTIST) ?: ""
+                    val artwork = metadata?.getBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART)
+                    updateNotification(title, artist, artwork, isPlaying)
+                }
 
                 promise.resolve(true)
             } catch (e: Exception) {
@@ -87,8 +100,10 @@ class ExpoMediaControlsModule : Module() {
         AsyncFunction("clearNowPlaying") { promise: Promise ->
             try {
                 mediaSession?.isActive = false
+                stopForegroundService()
                 val notificationManager = NotificationManagerCompat.from(appContext.reactContext!!)
                 notificationManager.cancel(notificationId)
+                lastNotificationBuilder = null
                 promise.resolve(true)
             } catch (e: Exception) {
                 promise.reject("CLEAR_ERROR", "Failed to clear now playing: ${e.message}", e)
@@ -159,6 +174,10 @@ class ExpoMediaControlsModule : Module() {
     }
 
     private fun updatePlaybackState(state: Int, position: Long) {
+        // Set playback speed: 1.0f when playing, 0.0f when paused
+        // This allows Android to automatically calculate progress without constant updates
+        val playbackSpeed = if (state == PlaybackStateCompat.STATE_PLAYING) 1.0f else 0.0f
+
         val playbackState = PlaybackStateCompat.Builder()
             .setActions(
                 PlaybackStateCompat.ACTION_PLAY or
@@ -169,7 +188,7 @@ class ExpoMediaControlsModule : Module() {
                 PlaybackStateCompat.ACTION_SEEK_TO or
                 PlaybackStateCompat.ACTION_STOP
             )
-            .setState(state, position * 1000, 1.0f)
+            .setState(state, position * 1000, playbackSpeed, android.os.SystemClock.elapsedRealtime())
             .build()
 
         mediaSession?.setPlaybackState(playbackState)
@@ -202,7 +221,7 @@ class ExpoMediaControlsModule : Module() {
             )
         }
 
-        val notification = NotificationCompat.Builder(context, channelId)
+        lastNotificationBuilder = NotificationCompat.Builder(context, channelId)
             .setContentTitle(title)
             .setContentText(artist)
             .setSmallIcon(android.R.drawable.ic_media_play)
@@ -229,8 +248,45 @@ class ExpoMediaControlsModule : Module() {
                 "Next",
                 createPendingIntent(context, "NEXT")
             )
-            .build()
 
+        val notification = lastNotificationBuilder!!.build()
+        val notificationManager = NotificationManagerCompat.from(context)
+        notificationManager.notify(notificationId, notification)
+    }
+
+    private fun updateNotification(title: String, artist: String, artwork: Bitmap?, isPlaying: Boolean) {
+        val context = appContext.reactContext ?: return
+        val builder = lastNotificationBuilder ?: return
+
+        val playPauseAction = if (isPlaying) {
+            NotificationCompat.Action(
+                android.R.drawable.ic_media_pause,
+                "Pause",
+                createPendingIntent(context, "PAUSE")
+            )
+        } else {
+            NotificationCompat.Action(
+                android.R.drawable.ic_media_play,
+                "Play",
+                createPendingIntent(context, "PLAY")
+            )
+        }
+
+        // Clear old actions and add new ones
+        builder.clearActions()
+        builder.addAction(
+            android.R.drawable.ic_media_previous,
+            "Previous",
+            createPendingIntent(context, "PREVIOUS")
+        )
+        builder.addAction(playPauseAction)
+        builder.addAction(
+            android.R.drawable.ic_media_next,
+            "Next",
+            createPendingIntent(context, "NEXT")
+        )
+
+        val notification = builder.build()
         val notificationManager = NotificationManagerCompat.from(context)
         notificationManager.notify(notificationId, notification)
     }
@@ -272,6 +328,70 @@ class ExpoMediaControlsModule : Module() {
             BitmapFactory.decodeStream(input)
         } catch (e: Exception) {
             null
+        }
+    }
+
+    private fun acquireWakeLock() {
+        val context = appContext.reactContext ?: return
+        try {
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "MusicPlayer::AudioPlaybackWakeLock"
+            )
+            wakeLock?.setReferenceCounted(false)
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+
+    private fun releaseWakeLock() {
+        try {
+            wakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                }
+            }
+            wakeLock = null
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+
+    private fun startForegroundService() {
+        val context = appContext.reactContext ?: return
+        try {
+            // Acquire wake lock to keep CPU running during playback
+            wakeLock?.let {
+                if (!it.isHeld) {
+                    it.acquire(60 * 60 * 1000L) // 1 hour timeout
+                }
+            }
+
+            // Start the foreground service
+            val intent = Intent(context, MusicPlaybackService::class.java)
+            serviceIntent = intent
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        } catch (e: Exception) {
+            // Log but don't crash
+            android.util.Log.e("ExpoMediaControls", "Failed to start foreground service", e)
+        }
+    }
+
+    private fun stopForegroundService() {
+        val context = appContext.reactContext ?: return
+        try {
+            releaseWakeLock()
+            serviceIntent?.let {
+                context.stopService(it)
+            }
+            serviceIntent = null
+        } catch (e: Exception) {
+            // Ignore
         }
     }
 }

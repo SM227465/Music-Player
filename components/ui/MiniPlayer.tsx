@@ -3,10 +3,10 @@ import { useAudioPlayerBackground } from '@/hooks/useAudioPlayerBackground';
 import { Song } from '@/types/searchSong';
 import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CircularCountdownButton from './CircularCountdownButton';
 
 type AudioPlayerType = ReturnType<typeof useAudioPlayerBackground>;
 
@@ -30,9 +30,8 @@ export default function MiniPlayer({
   audioPlayer,
 }: MiniPlayerProps) {
   const theme = useTheme();
-  const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
-  const { togglePlayPause, getProgress, position, duration, formatTime, isPlaying } = audioPlayer;
+  const { togglePlayPause, getProgress, position, duration, formatTime, isPlaying, showAutoPlayNext, playNext, cancelAutoPlayNext } = audioPlayer;
 
   if (!isVisible) return null;
 
@@ -188,9 +187,15 @@ export default function MiniPlayer({
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={styles.playButton} onPress={handlePlayPause} activeOpacity={0.8}>
-              <Ionicons name={isPlaying ? 'pause' : 'play'} size={iconSize.md} color={theme.text.inverse} />
-            </TouchableOpacity>
+            <CircularCountdownButton
+              size={52}
+              isPlaying={isPlaying}
+              showCountdown={showAutoPlayNext}
+              countdownSeconds={3}
+              onPress={handlePlayPause}
+              onCountdownComplete={playNext}
+              onCountdownCancel={cancelAutoPlayNext}
+            />
 
             {onNext && (
               <TouchableOpacity style={styles.skipButton} onPress={handleNext} activeOpacity={0.7}>

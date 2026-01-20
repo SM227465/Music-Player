@@ -8,12 +8,14 @@ import ProfileScreen from '@/components/ui/ProfileScreen';
 import SearchScreen from '@/components/ui/SearchScreen';
 import ArtistDetailScreen from '@/components/ui/ArtistDetailScreen';
 import { useAudioPlayerBackground } from '@/hooks/useAudioPlayerBackground';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { Song } from '@/types/searchSong';
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { ErrorBoundary } from 'react-error-boundary';
 import SplashScreen from './index';
 import { useTheme } from '@/constants/theme';
+import NoInternetBanner from '@/components/ui/NoInternetBanner';
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
   return (
@@ -29,13 +31,14 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
 
 function MainApp() {
   const theme = useTheme();
+  const { isOffline } = useNetworkStatus();
   const [activeTab, setActiveTab] = useState('home');
   const [showNowPlaying, setShowNowPlaying] = useState(false);
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
   const audioPlayer = useAudioPlayerBackground();
 
-  const handleSongPress = async (song: Song) => {
-    await audioPlayer.playAudio(song);
+  const handleSongPress = async (song: Song, playlistSongs?: Song[]) => {
+    await audioPlayer.playAudio(song, playlistSongs);
     setShowNowPlaying(true);
   };
 
@@ -62,6 +65,7 @@ function MainApp() {
     return (
       <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => setSelectedArtistId(null)}>
         <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+          <NoInternetBanner isVisible={isOffline} />
           <ArtistDetailScreen
             artistId={selectedArtistId}
             onBack={handleBackFromArtist}
@@ -92,6 +96,7 @@ function MainApp() {
               audioPlayer={audioPlayer}
             />
           )}
+
           {!showNowPlaying && <NavigationBar activeTab={activeTab} onTabPress={setActiveTab} />}
         </View>
       </ErrorBoundary>
@@ -147,6 +152,7 @@ function MainApp() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => setActiveTab('home')}>
       <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+        <NoInternetBanner isVisible={isOffline} />
         {renderScreen()}
 
         {audioPlayer.currentTrack && (
@@ -169,6 +175,7 @@ function MainApp() {
             audioPlayer={audioPlayer}
           />
         )}
+
         {!showNowPlaying && <NavigationBar activeTab={activeTab} onTabPress={setActiveTab} />}
       </View>
     </ErrorBoundary>

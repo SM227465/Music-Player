@@ -1,5 +1,5 @@
 // components/ui/LibraryScreen.tsx
-import { useFavorites, usePlaylists, useHistory, useDownloads } from '@/hooks/useStorage';
+import { useFavorites, usePlaylists, useHistory, useDownloads, useQueue } from '@/hooks/useStorage';
 import { Song } from '@/types/searchSong';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -21,7 +21,7 @@ import { useTheme, spacing, borderRadius, fontSize, fontWeight, iconSize } from 
 import NowPlayingIndicator from './NowPlayingIndicator';
 
 interface LibraryScreenProps {
-  onSongPress?: (song: Song) => void;
+  onSongPress?: (song: Song, playlistSongs?: Song[]) => void;
   onPlayQueue?: (songs: Song[], startIndex: number) => void;
   currentTrack?: Song | null;
   isPlaying?: boolean;
@@ -38,7 +38,7 @@ export default function LibraryScreen({ onSongPress, onPlayQueue, currentTrack, 
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
 
   const { favorites, loading: favoritesLoading, refresh: refreshFavorites } = useFavorites();
-  const { playlists, createPlaylist, deletePlaylist, loading: playlistsLoading, refresh: refreshPlaylists } = usePlaylists();
+  const { playlists, createPlaylist, deletePlaylist, removeSongFromPlaylist, loading: playlistsLoading, refresh: refreshPlaylists } = usePlaylists();
   const { history, loading: historyLoading, clearHistory, refresh: refreshHistory } = useHistory(20);
   const { downloads, deleteSong, getTotalSize, formatBytes, loading: downloadsLoading, refresh: refreshDownloads } = useDownloads();
 
@@ -94,6 +94,23 @@ export default function LibraryScreen({ onSongPress, onPlayQueue, currentTrack, 
             await deletePlaylist(playlistId);
           } catch (error) {
             Alert.alert('Error', 'Failed to delete playlist');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleRemoveSongFromPlaylist = (playlistId: string, songId: string, songName: string) => {
+    Alert.alert('Remove Song', `Remove "${songName}" from this playlist?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await removeSongFromPlaylist(playlistId, songId);
+          } catch (error) {
+            Alert.alert('Error', 'Failed to remove song from playlist');
           }
         },
       },
@@ -407,6 +424,15 @@ export default function LibraryScreen({ onSongPress, onPlayQueue, currentTrack, 
       fontSize: fontSize.xs,
       color: theme.text.tertiary,
       marginTop: 2,
+    },
+    removeSongButton: {
+      width: 32,
+      height: 32,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.accent.error + '1A',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: spacing.sm,
     },
     paddingBottom: {
       height: 100,
@@ -851,6 +877,66 @@ export default function LibraryScreen({ onSongPress, onPlayQueue, currentTrack, 
   // Get selected playlist
   const selectedPlaylist = playlists.find(p => p.id === selectedPlaylistId);
 
+  // Render song item for playlist detail with remove button
+  const renderPlaylistSongItem = ({ item, index }: { item: Song; index: number }) => {
+    const isCurrentTrack = currentTrack?.id === item.id;
+
+    // Handler to play single song with playlist context for auto-play feature
+    const handlePlaySingleSong = () => {
+      if (onSongPress && selectedPlaylist) {
+        onSongPress(item, selectedPlaylist.songs);
+      } else if (onSongPress) {
+        onSongPress(item);
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        style={[styles.songItem, isCurrentTrack && styles.songItemPlaying]}
+        onPress={handlePlaySingleSong}
+        activeOpacity={0.7}
+      >
+        <Image source={{ uri: getImageUrl(item.image, '150x150') || '' }} style={styles.songImage} />
+        <View style={styles.songInfo}>
+          <Text style={[styles.songTitle, isCurrentTrack && styles.songTitlePlaying]} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text style={styles.songArtist} numberOfLines={1}>
+            {item.artists.primary.map((artist) => artist.name).join(', ')}
+          </Text>
+        </View>
+        {isCurrentTrack ? (
+          <View style={styles.nowPlayingContainer}>
+            <NowPlayingIndicator isPlaying={isPlaying ?? false} />
+          </View>
+        ) : null}
+        <TouchableOpacity
+          style={styles.playIconButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            if (isCurrentTrack && onTogglePlayPause) {
+              onTogglePlayPause();
+            } else {
+              handlePlaySingleSong();
+            }
+          }}
+        >
+          <Ionicons
+            name={isCurrentTrack ? (isPlaying ? 'pause' : 'play') : 'play'}
+            size={iconSize.sm}
+            color={theme.accent.primary}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.removeSongButton}
+          onPress={() => selectedPlaylistId && handleRemoveSongFromPlaylist(selectedPlaylistId, item.id, item.name)}
+        >
+          <Ionicons name='close' size={iconSize.sm} color={theme.accent.error} />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+  };
+
   // If a playlist is selected, show playlist songs
   if (selectedPlaylist) {
     const handlePlayAllPlaylist = () => {
@@ -904,7 +990,7 @@ export default function LibraryScreen({ onSongPress, onPlayQueue, currentTrack, 
               </View>
               <FlatList
                 data={selectedPlaylist.songs}
-                renderItem={renderSongItem}
+                renderItem={renderPlaylistSongItem}
                 keyExtractor={(item) => item.id}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.listContent}

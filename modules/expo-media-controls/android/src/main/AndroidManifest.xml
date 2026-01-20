@@ -3,8 +3,15 @@
     <!-- Permissions for media playback and notifications -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application>
+        <!-- Foreground service for continuous background audio playback -->
+        <service
+            android:name=".MusicPlaybackService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <!-- BroadcastReceiver for notification button clicks -->
         <receiver
             android:name=".MediaControlReceiver"
