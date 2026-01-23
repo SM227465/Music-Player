@@ -78,12 +78,21 @@ export default function ArtistDetailScreen({
       paddingBottom: spacing.lg,
     },
     backButton: {
+      position: 'absolute',
+      top: 60,
+      left: spacing.xl,
       width: 40,
       height: 40,
       borderRadius: borderRadius.full,
       backgroundColor: theme.card.background,
       justifyContent: 'center',
       alignItems: 'center',
+      zIndex: 1000,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
     },
     loadingContainer: {
       flex: 1,
@@ -596,11 +605,10 @@ export default function ArtistDetailScreen({
   if (isError || !artist) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
-        <View style={[styles.header, { paddingTop: 60 }]}>
-          <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Ionicons name='arrow-back' size={iconSize.md} color={theme.text.primary} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+          <Ionicons name='arrow-back' size={iconSize.md} color={theme.text.primary} />
+        </TouchableOpacity>
+
         <View style={styles.errorContainer}>
           <Ionicons name='alert-circle-outline' size={64} color={theme.text.tertiary} />
           <Text style={[styles.errorText, { color: theme.text.secondary }]}>Failed to load artist details</Text>
@@ -619,6 +627,10 @@ export default function ArtistDetailScreen({
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+      <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <Ionicons name='arrow-back' size={iconSize.md} color={theme.text.primary} />
+      </TouchableOpacity>
+
       <FlatList
         data={activeTab === 'songs' ? songs : albums}
         renderItem={activeTab === 'songs' ? renderInfiniteSongItem : renderAlbumItem}
@@ -631,11 +643,7 @@ export default function ArtistDetailScreen({
         ListFooterComponent={renderLoadingFooter}
         ListHeaderComponent={
           <>
-            <View style={[styles.header, { paddingTop: 60 }]}>
-              <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                <Ionicons name='arrow-back' size={iconSize.md} color={theme.text.primary} />
-              </TouchableOpacity>
-            </View>
+            <View style={[styles.header, { paddingTop: 60 }]} />
 
             <View style={styles.artistInfo}>
               <Image

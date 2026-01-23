@@ -15,6 +15,15 @@ export const useAudioPlayerBackground = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [queue, setQueue] = useState<Song[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Update refs whenever state changes
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
   const [showAutoPlayNext, setShowAutoPlayNext] = useState(false);
   const [autoPlayNextSong, setAutoPlayNextSong] = useState<Song | null>(null);
 
@@ -25,6 +34,8 @@ export const useAudioPlayerBackground = () => {
   const lastUpdateTimeRef = useRef(0);
   const lastPlaybackStateRef = useRef(false);
   const isSingleSongPlayRef = useRef(false);
+  const currentIndexRef = useRef(0);
+  const queueRef = useRef<Song[]>([]);
 
   // Configure audio mode for background playback (once)
   useEffect(() => {
@@ -258,10 +269,12 @@ export const useAudioPlayerBackground = () => {
     setShowAutoPlayNext(false);
     isSingleSongPlayRef.current = false; // Reset single song play flag
     if (currentIndex < queue.length - 1) {
-      await playSongAtIndex(currentIndex + 1);
-      // Update next song for auto-play if there's another one
-      if (currentIndex + 2 < queue.length) {
-        setAutoPlayNextSong(queue[currentIndex + 2]);
+      const nextIndex = currentIndex + 1;
+      await playSongAtIndex(nextIndex);
+      // Update next song for auto-play if there's another one after the next song
+      const songAfterNext = nextIndex + 1;
+      if (songAfterNext < queue.length) {
+        setAutoPlayNextSong(queue[songAfterNext]);
       } else {
         setAutoPlayNextSong(null);
       }
@@ -283,25 +296,29 @@ export const useAudioPlayerBackground = () => {
       const isNearEnd = Math.abs(statusPosition - statusDuration) < 1;
       const hasEnded = !status.playing && statusPosition > 0 && isNearEnd;
 
+      // Use refs to get current values
+      const index = currentIndexRef.current;
+      const q = queueRef.current;
+
       // Only auto-play if we haven't already played next for this song
-      if (hasEnded && queue.length > 0 && currentIndex < queue.length - 1 && !hasPlayedNextRef.current) {
+      if (hasEnded && q.length > 0 && index < q.length - 1 && !hasPlayedNextRef.current) {
         hasPlayedNextRef.current = true; // Prevent multiple triggers
 
         // If this was a single song play from a playlist, show auto-play countdown
         if (isSingleSongPlayRef.current) {
-          const nextSong = queue[currentIndex + 1];
+          const nextSong = q[index + 1];
           setAutoPlayNextSong(nextSong);
           setShowAutoPlayNext(true);
           // Don't auto-play immediately, let the countdown handle it
         } else {
           // Regular queue play - auto-advance immediately
           setTimeout(() => {
-            playNext();
+            playSongAtIndex(index + 1);
           }, 100);
         }
       }
     }
-  }, [status.isLoaded, status.playing, status.currentTime, status.duration, queue.length, currentIndex, playNext]);
+  }, [status.isLoaded, status.playing, status.currentTime, status.duration, playSongAtIndex]);
 
   // Play previous song in queue
   const playPrevious = useCallback(async () => {
@@ -457,45 +474,54 @@ export const useAudioPlayerBackground = () => {
     }
   }, [currentTrack, player]);
 
-  // Update playback state in notification (only when play/pause state changes)
+  // Update playback state in notification
   useEffect(() => {
-    if (currentTrack && duration > 0) {
-      // Only update when play/pause state actually changes to avoid flickering
-      if (lastPlaybackStateRef.current !== isPlaying) {
-        lastPlaybackStateRef.current = isPlaying;
-        MediaControls.updatePlaybackState(isPlaying, position).catch(error => {
-          console.error('Failed to update playback state:', error);
-        });
-      }
+    if (!currentTrack || duration <= 0) return;
+
+    // Update immediately when play/pause state changes or position changes significantly
+    const positionChanged = Math.abs(lastPositionRef.current - position) > 0.5;
+
+    if (lastPlaybackStateRef.current !== isPlaying || positionChanged) {
+      lastPlaybackStateRef.current = isPlaying;
+      MediaControls.updatePlaybackState(isPlaying, position).catch(error => {
+        console.error('Failed to update playback state:', error);
+      });
     }
   }, [isPlaying, position, currentTrack, duration]);
 
-  // Handle media control events
+  // Handle media control events - using refs to avoid stale closures
   useEffect(() => {
     const subscriptions = [
       MediaControls.onPlay(() => {
-        if (!isPlaying && currentTrack) {
-          resumeAudio();
-        }
+        player.play();
       }),
       MediaControls.onPause(() => {
-        if (isPlaying) {
-          pauseAudio();
-        }
+        player.pause();
       }),
       MediaControls.onNext(() => {
-        playNext();
+        // Use refs to get current values
+        const index = currentIndexRef.current;
+        const q = queueRef.current;
+        if (index < q.length - 1) {
+          playSongAtIndex(index + 1);
+        }
       }),
       MediaControls.onPrevious(() => {
-        playPrevious();
+        // Use refs to get current values
+        const index = currentIndexRef.current;
+        if (index > 0) {
+          playSongAtIndex(index - 1);
+        }
       }),
       MediaControls.onSeek((event) => {
         if (event.position !== undefined) {
-          seekTo(event.position);
+          player.seekTo(event.position);
         }
       }),
       MediaControls.onStop(() => {
-        stopAndClear();
+        player.pause();
+        player.seekTo(0);
+        MediaControls.clearNowPlaying().catch(() => {});
       }),
     ];
 
@@ -505,7 +531,7 @@ export const useAudioPlayerBackground = () => {
         console.error('Failed to clear now playing on unmount:', error);
       });
     };
-  }, [isPlaying, currentTrack, resumeAudio, pauseAudio, playNext, playPrevious, seekTo, stopAndClear]);
+  }, [player, playSongAtIndex]);
 
   return {
     currentTrack,

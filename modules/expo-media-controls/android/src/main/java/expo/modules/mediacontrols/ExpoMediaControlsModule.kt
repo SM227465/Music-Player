@@ -232,6 +232,7 @@ class ExpoMediaControlsModule : Module() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+            .setOngoing(isPlaying)
             .setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
                     .setMediaSession(sessionToken)
@@ -271,6 +272,9 @@ class ExpoMediaControlsModule : Module() {
                 createPendingIntent(context, "PLAY")
             )
         }
+
+        // Update ongoing status
+        builder.setOngoing(isPlaying)
 
         // Clear old actions and add new ones
         builder.clearActions()
