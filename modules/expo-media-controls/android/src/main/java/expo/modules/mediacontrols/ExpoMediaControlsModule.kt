@@ -66,12 +66,21 @@ class ExpoMediaControlsModule : Module() {
         AsyncFunction("updateNowPlaying") { title: String, artist: String, album: String, artworkUrl: String?, duration: Double, promise: Promise ->
             scope.launch {
                 try {
+                    android.util.Log.d("ExpoMediaControls", "updateNowPlaying called: $title by $artist")
+
+                    // Ensure MediaSession is active
+                    mediaSession?.isActive = true
+
                     val artwork = artworkUrl?.let { loadBitmapFromUrl(it) }
                     updateMediaMetadata(title, artist, album, artwork, duration.toLong())
+                    // Reset playback state when changing tracks
+                    updatePlaybackState(PlaybackStateCompat.STATE_PLAYING, 0)
                     ensureServiceRunning()
                     showNotification(title, artist, artwork, true)
+                    android.util.Log.d("ExpoMediaControls", "Notification updated successfully for: $title")
                     promise.resolve(true)
                 } catch (e: Exception) {
+                    android.util.Log.e("ExpoMediaControls", "Failed to update now playing", e)
                     promise.reject("UPDATE_ERROR", "Failed to update now playing: ${e.message}", e)
                 }
             }
@@ -165,17 +174,24 @@ class ExpoMediaControlsModule : Module() {
     }
 
     private fun updateMediaMetadata(title: String, artist: String, album: String, artwork: Bitmap?, duration: Long) {
+        android.util.Log.d("ExpoMediaControls", "Updating MediaSession metadata: $title")
+
         val metadata = MediaMetadataCompat.Builder()
             .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
             .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
             .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration * 1000)
             .apply {
-                artwork?.let { putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, it) }
+                artwork?.let {
+                    putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, it)
+                    putBitmap(MediaMetadataCompat.METADATA_KEY_ART, it)
+                    putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, it)
+                }
             }
             .build()
 
         mediaSession?.setMetadata(metadata)
+        android.util.Log.d("ExpoMediaControls", "MediaSession metadata updated")
     }
 
     private fun updatePlaybackState(state: Int, position: Long) {
@@ -226,6 +242,7 @@ class ExpoMediaControlsModule : Module() {
             )
         }
 
+        // Always create a fresh notification builder to ensure updates are visible
         lastNotificationBuilder = NotificationCompat.Builder(context, channelId)
             .setContentTitle(title)
             .setContentText(artist)
@@ -257,23 +274,27 @@ class ExpoMediaControlsModule : Module() {
 
         val notification = lastNotificationBuilder!!.build()
 
+        val notificationManager = NotificationManagerCompat.from(context)
+
         // Update the service's foreground notification with this media notification
         val service = MusicPlaybackService.getInstance()
         if (service != null) {
             try {
+                // Update foreground notification - this will refresh the lock screen
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     service.startForeground(notificationId, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
                 } else {
                     service.startForeground(notificationId, notification)
                 }
+                android.util.Log.d("ExpoMediaControls", "Foreground notification updated with title: $title")
             } catch (e: Exception) {
                 android.util.Log.e("ExpoMediaControls", "Failed to update foreground notification", e)
             }
+        } else {
+            // Service not running, just show notification normally
+            notificationManager.notify(notificationId, notification)
+            android.util.Log.d("ExpoMediaControls", "Regular notification shown: $title")
         }
-
-        // Also notify through NotificationManager (though startForeground already does this)
-        val notificationManager = NotificationManagerCompat.from(context)
-        notificationManager.notify(notificationId, notification)
     }
 
     private fun updateNotification(title: String, artist: String, artwork: Bitmap?, isPlaying: Boolean) {
@@ -383,7 +404,7 @@ class ExpoMediaControlsModule : Module() {
         }
     }
 
-    private fun ensureServiceRunning() {
+    private suspend fun ensureServiceRunning() {
         val context = appContext.reactContext ?: return
         try {
             // Acquire wake lock to keep CPU running during playback
@@ -393,13 +414,18 @@ class ExpoMediaControlsModule : Module() {
                 }
             }
 
-            // Start the service and renew its wake lock
-            val intent = Intent(context, MusicPlaybackService::class.java)
-            serviceIntent = intent
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            // Only start the service if it's not already running
+            val service = MusicPlaybackService.getInstance()
+            if (service == null) {
+                val intent = Intent(context, MusicPlaybackService::class.java)
+                serviceIntent = intent
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+                // Brief delay to let service initialize before we try to use it
+                kotlinx.coroutines.delay(50)
             }
 
             // Renew the service's wake lock to ensure it stays active

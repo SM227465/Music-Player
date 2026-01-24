@@ -37,38 +37,41 @@ class MusicPlaybackService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // On Android O+, we must call startForeground within 5 seconds of startForegroundService
-        // We'll start with a minimal notification and it will be replaced by the media notification
-        startForegroundWithMinimalNotification()
-        return START_STICKY
-    }
+        // On Android O+, we must call startForeground within 5 seconds
+        // ExpoMediaControlsModule will call startForeground with the actual notification
+        // very shortly (within milliseconds), but as a safety fallback, we schedule
+        // a minimal notification if it hasn't been called within 4 seconds
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                // Check if we're still not in foreground (this shouldn't happen normally)
+                try {
+                    val notificationIntent = packageManager.getLaunchIntentForPackage(packageName)
+                    val pendingIntent = PendingIntent.getActivity(
+                        this,
+                        0,
+                        notificationIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
 
-    private fun startForegroundWithMinimalNotification() {
-        val notificationIntent = packageManager.getLaunchIntentForPackage(packageName)
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            notificationIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+                    val notification = NotificationCompat.Builder(this, channelId)
+                        .setContentTitle("Music Player")
+                        .setContentText("Loading...")
+                        .setSmallIcon(android.R.drawable.ic_media_play)
+                        .setContentIntent(pendingIntent)
+                        .setPriority(NotificationCompat.PRIORITY_MIN)
+                        .build()
 
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Melodify")
-            .setContentText("Preparing audio...")
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentIntent(pendingIntent)
-            .setOngoing(false)
-            .setOnlyAlertOnce(true)
-            .setSilent(true)
-            .setPriority(NotificationCompat.PRIORITY_MIN)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .build()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-        } else {
-            startForeground(1, notification)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startForeground(notificationId, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+                    } else {
+                        startForeground(notificationId, notification)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("MusicPlaybackService", "Emergency startForeground failed", e)
+                }
+            }, 4000) // 4 seconds - just before the 5-second deadline
         }
+        return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

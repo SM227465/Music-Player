@@ -154,14 +154,19 @@ export const useAudioPlayerBackground = () => {
       lastPlaybackStateRef.current = true;
 
       // Update media notification
+      const artworkUrl = song.image?.find(img => img.quality === '500x500')?.url || song.image?.[0]?.url || '';
+      console.log('[playSongAtIndex] Updating notification for:', song.name, 'artwork:', artworkUrl ? 'available' : 'missing');
+
       MediaControls.updateNowPlaying({
         title: song.name,
         artist: song.artists?.primary?.map(a => a.name).join(', ') || 'Unknown Artist',
         album: song.album?.name || '',
-        artworkUrl: song.image?.find(img => img.quality === '500x500')?.url || song.image?.[0]?.url,
+        artworkUrl: artworkUrl,
         duration: song.duration || 0,
+      }).then(() => {
+        console.log('[playSongAtIndex] Notification updated successfully for:', song.name);
       }).catch(error => {
-        console.error('Failed to update now playing:', error);
+        console.error('[playSongAtIndex] Failed to update now playing:', error);
       });
     } catch (error) {
       console.error('Error playing audio:', error);
@@ -234,14 +239,19 @@ export const useAudioPlayerBackground = () => {
       lastPlaybackStateRef.current = true;
 
       // Update media notification
+      const artworkUrl = song.image?.find(img => img.quality === '500x500')?.url || song.image?.[0]?.url || '';
+      console.log('[playAudio] Updating notification for:', song.name, 'artwork:', artworkUrl ? 'available' : 'missing');
+
       MediaControls.updateNowPlaying({
         title: song.name,
         artist: song.artists?.primary?.map(a => a.name).join(', ') || 'Unknown Artist',
         album: song.album?.name || '',
-        artworkUrl: song.image?.find(img => img.quality === '500x500')?.url || song.image?.[0]?.url,
+        artworkUrl: artworkUrl,
         duration: song.duration || 0,
+      }).then(() => {
+        console.log('[playAudio] Notification updated successfully for:', song.name);
       }).catch(error => {
-        console.error('Failed to update now playing:', error);
+        console.error('[playAudio] Failed to update now playing:', error);
       });
     } catch (error) {
       console.error('Error playing audio:', error);
