@@ -68,7 +68,7 @@ class ExpoMediaControlsModule : Module() {
                 try {
                     val artwork = artworkUrl?.let { loadBitmapFromUrl(it) }
                     updateMediaMetadata(title, artist, album, artwork, duration.toLong())
-                    startForegroundService()
+                    ensureServiceRunning()
                     showNotification(title, artist, artwork, true)
                     promise.resolve(true)
                 } catch (e: Exception) {
@@ -100,6 +100,11 @@ class ExpoMediaControlsModule : Module() {
         AsyncFunction("clearNowPlaying") { promise: Promise ->
             try {
                 mediaSession?.isActive = false
+
+                // Stop foreground but keep service running
+                val service = MusicPlaybackService.getInstance()
+                service?.stopForeground(true)
+
                 stopForegroundService()
                 val notificationManager = NotificationManagerCompat.from(appContext.reactContext!!)
                 notificationManager.cancel(notificationId)
@@ -251,6 +256,22 @@ class ExpoMediaControlsModule : Module() {
             )
 
         val notification = lastNotificationBuilder!!.build()
+
+        // Update the service's foreground notification with this media notification
+        val service = MusicPlaybackService.getInstance()
+        if (service != null) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    service.startForeground(notificationId, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+                } else {
+                    service.startForeground(notificationId, notification)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ExpoMediaControls", "Failed to update foreground notification", e)
+            }
+        }
+
+        // Also notify through NotificationManager (though startForeground already does this)
         val notificationManager = NotificationManagerCompat.from(context)
         notificationManager.notify(notificationId, notification)
     }
@@ -362,7 +383,7 @@ class ExpoMediaControlsModule : Module() {
         }
     }
 
-    private fun startForegroundService() {
+    private fun ensureServiceRunning() {
         val context = appContext.reactContext ?: return
         try {
             // Acquire wake lock to keep CPU running during playback
@@ -372,7 +393,7 @@ class ExpoMediaControlsModule : Module() {
                 }
             }
 
-            // Start the foreground service
+            // Start the service and renew its wake lock
             val intent = Intent(context, MusicPlaybackService::class.java)
             serviceIntent = intent
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -380,9 +401,12 @@ class ExpoMediaControlsModule : Module() {
             } else {
                 context.startService(intent)
             }
+
+            // Renew the service's wake lock to ensure it stays active
+            MusicPlaybackService.getInstance()?.renewWakeLock()
         } catch (e: Exception) {
             // Log but don't crash
-            android.util.Log.e("ExpoMediaControls", "Failed to start foreground service", e)
+            android.util.Log.e("ExpoMediaControls", "Failed to start service", e)
         }
     }
 

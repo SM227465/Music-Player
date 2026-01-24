@@ -115,16 +115,13 @@ export const useAudioPlayerBackground = () => {
       setIsLoading(true);
       hasPlayedNextRef.current = false; // Reset flag when manually changing songs
 
-      // Re-configure audio mode for background playback to ensure it's active
-      // This is important when transitioning songs while phone is locked
-      if (!audioModeConfigured.current) {
-        await setAudioModeAsync({
-          playsInSilentMode: true,
-          shouldPlayInBackground: true,
-          interruptionMode: 'doNotMix',
-        });
-        audioModeConfigured.current = true;
-      }
+      // Always re-configure audio mode for background playback
+      // This is critical for transitions while phone is locked
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
+        interruptionMode: 'doNotMix',
+      });
 
       // Get the best quality audio URL
       const audioUrl = song.downloadUrl?.find(u => u.quality === '320kbps')?.url ||
@@ -311,10 +308,8 @@ export const useAudioPlayerBackground = () => {
           setShowAutoPlayNext(true);
           // Don't auto-play immediately, let the countdown handle it
         } else {
-          // Regular queue play - auto-advance immediately
-          setTimeout(() => {
-            playSongAtIndex(index + 1);
-          }, 100);
+          // Regular queue play - auto-advance immediately (no setTimeout for more reliability when locked)
+          playSongAtIndex(index + 1);
         }
       }
     }
