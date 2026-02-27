@@ -760,7 +760,7 @@ export default function SearchScreen({ onSongPress, onArtistPress, currentTrack,
                 {/* Songs Section */}
                 {globalResults.data.songs?.results && globalResults.data.songs.results.length > 0 && (
                   <View style={styles.categorySection}>
-                    <Text style={styles.categoryTitle}>Songs</Text>
+                    <Text style={styles.sectionTitle}>Songs</Text>
                     <FlatList
                       data={globalResults.data.songs.results.slice(0, 5)}
                       renderItem={renderGlobalSongItem}
@@ -774,21 +774,35 @@ export default function SearchScreen({ onSongPress, onArtistPress, currentTrack,
                 {/* Albums Section */}
                 {globalResults.data.albums?.results && globalResults.data.albums.results.length > 0 && (
                   <View style={styles.categorySection}>
-                    <Text style={styles.categoryTitle}>Albums</Text>
+                    <Text style={styles.sectionTitle}>Albums</Text>
+                    <FlatList
+                      data={globalResults.data.albums.results.slice(0, 5)}
+                      renderItem={renderGlobalAlbumItem}
+                      keyExtractor={(item) => item.id}
+                      scrollEnabled={false}
+                      showsVerticalScrollIndicator={false}
+                    />
                   </View>
                 )}
 
                 {/* Artists Section */}
                 {globalResults.data.artists?.results && globalResults.data.artists.results.length > 0 && (
                   <View style={styles.categorySection}>
-                    <Text style={styles.categoryTitle}>Artists</Text>
+                    <Text style={styles.sectionTitle}>Artists</Text>
+                    <FlatList
+                      data={globalResults.data.artists.results.slice(0, 5)}
+                      renderItem={renderGlobalArtistItem}
+                      keyExtractor={(item) => item.id}
+                      scrollEnabled={false}
+                      showsVerticalScrollIndicator={false}
+                    />
                   </View>
                 )}
 
                 {/* Playlists Section */}
                 {globalResults.data.playlists?.results && globalResults.data.playlists.results.length > 0 && (
                   <View style={styles.categorySection}>
-                    <Text style={styles.categoryTitle}>Playlists</Text>
+                    <Text style={styles.sectionTitle}>Playlists</Text>
                     <FlatList
                       data={globalResults.data.playlists.results.slice(0, 5)}
                       renderItem={renderPlaylistItem}

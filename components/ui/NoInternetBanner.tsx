@@ -1,7 +1,7 @@
 // components/ui/NoInternetBanner.tsx
-import { useTheme, spacing, fontSize, fontWeight } from '@/constants/theme';
+import { spacing, fontSize, fontWeight } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,17 +10,36 @@ interface NoInternetBannerProps {
 }
 
 export default function NoInternetBanner({ isVisible }: NoInternetBannerProps) {
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(-100)).current;
+  const [showConnected, setShowConnected] = useState(false);
+  const prevIsVisible = useRef(isVisible);
 
   useEffect(() => {
+    // Check if connection was just restored (was offline, now online)
+    if (prevIsVisible.current === true && isVisible === false) {
+      // Connection restored - show green banner
+      setShowConnected(true);
+
+      // Hide green banner after 3 seconds
+      const timer = setTimeout(() => {
+        setShowConnected(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+
+    prevIsVisible.current = isVisible;
+  }, [isVisible]);
+
+  useEffect(() => {
+    const shouldShow = isVisible || showConnected;
     Animated.timing(slideAnim, {
-      toValue: isVisible ? 0 : -100,
+      toValue: shouldShow ? 0 : -100,
       duration: 300,
       useNativeDriver: true,
     }).start();
-  }, [isVisible, slideAnim]);
+  }, [isVisible, showConnected, slideAnim]);
 
   const styles = StyleSheet.create({
     container: {
@@ -30,7 +49,7 @@ export default function NoInternetBanner({ isVisible }: NoInternetBannerProps) {
       right: 0,
       zIndex: 9999,
       paddingTop: insets.top,
-      backgroundColor: '#E53935',
+      backgroundColor: showConnected ? '#4CAF50' : '#E53935',
     },
     content: {
       flexDirection: 'row',
@@ -55,8 +74,14 @@ export default function NoInternetBanner({ isVisible }: NoInternetBannerProps) {
       ]}
     >
       <View style={styles.content}>
-        <Ionicons name="cloud-offline" size={18} color="#FFFFFF" />
-        <Text style={styles.text}>No internet connection</Text>
+        <Ionicons
+          name={showConnected ? "checkmark-circle" : "cloud-offline"}
+          size={18}
+          color="#FFFFFF"
+        />
+        <Text style={styles.text}>
+          {showConnected ? "Connected to internet" : "No internet connection"}
+        </Text>
       </View>
     </Animated.View>
   );
